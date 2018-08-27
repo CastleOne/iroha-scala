@@ -23,10 +23,18 @@ libraryDependencies += "org.hyperledger" %% "iroha-scala" % "0.95-SNAPSHOT"
 
 ## Test
 
-Test required local iroha node with gRPC(50051).
+Some tests require a Iroha node, to run these tests make sure a local Iroha node is running with port gRPC(50051).
+
+To run all unit tests use:
 
 ```sh
 sbt test
+```
+
+Alternatively you can run tests that do not require a Iroha node using:
+
+```sh
+sbt "testOnly *Spec -- -l net.cimadai.iroha.Tags.TxTest"
 ```
 
 ## Compile proto
