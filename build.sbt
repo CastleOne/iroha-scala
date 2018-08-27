@@ -16,7 +16,7 @@ lazy val libraries = Seq(
   "com.trueaccord.scalapb" %% "scalapb-runtime" % com.trueaccord.scalapb.compiler.Version.scalapbVersion % "protobuf",
   "org.bouncycastle" % "bcpg-jdk15on" % "1.58",
   "net.i2p.crypto" % "eddsa" % "0.2.0",
-  "org.scalatest" %% "scalatest" % "2.2.1" % "test"
+  "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 )
 
 lazy val settings = Seq(
