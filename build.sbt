@@ -1,6 +1,6 @@
 name := "iroha-scala"
 
-version := "0.95-SNAPSHOT"
+version := "1.0-SNAPSHOT"
 
 val PROJECT_SCALA_VERSION = "2.11.11"
 
