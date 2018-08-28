@@ -2,15 +2,15 @@ name := "iroha-scala"
 
 version := "1.0-SNAPSHOT"
 
-val PROJECT_SCALA_VERSION = "2.11.11"
+val PROJECT_SCALA_VERSION = "2.12.6"
 
 scalaVersion := PROJECT_SCALA_VERSION
 
 useGpg in GlobalScope := true
 
 lazy val libraries = Seq(
-  "org.scala-lang.modules" %% "scala-xml" % "1.0.4",
-  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
+  "org.scala-lang.modules" %% "scala-xml" % "1.1.0",
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.1",
   "io.grpc" % "grpc-netty" % "1.0.1",
   "com.trueaccord.scalapb" %% "scalapb-runtime-grpc" % com.trueaccord.scalapb.compiler.Version.scalapbVersion,
   "com.trueaccord.scalapb" %% "scalapb-runtime" % com.trueaccord.scalapb.compiler.Version.scalapbVersion % "protobuf",
