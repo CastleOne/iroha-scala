@@ -29,8 +29,6 @@ import net.i2p.crypto.eddsa.spec.EdDSAPublicKeySpec
 import net.i2p.crypto.eddsa.{EdDSAEngine, EdDSAPrivateKey, EdDSAPublicKey, Utils}
 import org.bouncycastle.jcajce.provider.digest.SHA3
 
-import scala.language.postfixOps
-
 object Iroha {
   private val queryCounter = new AtomicLong(1)
 
@@ -79,7 +77,7 @@ object Iroha {
       case (msg, TxStatus.STATEFUL_VALIDATION_FAILED) => Some(ToriiError(s"Stateful Validation Failed: $msg", response.txStatus))
       case (msg, TxStatus.NOT_RECEIVED) => Some(ToriiError(s"Transaction Not Received: $msg", response.txStatus))
       case (msg, TxStatus.MST_EXPIRED) => Some(ToriiError(s"MST Expired: $msg", response.txStatus))
-      case t => None
+      case _ => None
     }
   }
 

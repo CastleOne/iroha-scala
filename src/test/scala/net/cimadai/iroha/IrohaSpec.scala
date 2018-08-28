@@ -8,8 +8,7 @@ import net.cimadai.iroha.Tags.TxTest
 import org.bouncycastle.jcajce.provider.digest.SHA3
 import org.scalatest.AsyncWordSpec
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class IrohaSpec extends AsyncWordSpec {
   import TestHelpers._

@@ -44,7 +44,7 @@ object SHA3EdDSAPrivateKeySpec {
 
       new SHA3EdDSAPrivateKeySpec(seed, h, a, A, spec)
     } catch {
-      case e: NoSuchAlgorithmException =>
+      case _: NoSuchAlgorithmException =>
         throw new IllegalArgumentException("Unsupported hash algorithm")
     }
   }

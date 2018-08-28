@@ -68,7 +68,7 @@ object TestHelpers {
     resp
   }
 
-  def isCommitted(tx: Transaction)(implicit commandGrpc: CommandService, context: Context): Boolean = {
+  def isCommitted(tx: Transaction)(implicit commandGrpc: CommandService): Boolean = {
     val response = askTransactionStatus(Iroha.CommandService.txStatusRequest(tx))
     response match {
       case ToriiError(error) => throw error
