@@ -11,7 +11,7 @@ useGpg in GlobalScope := true
 lazy val libraries = Seq(
   "org.scala-lang.modules" %% "scala-xml" % "1.1.0",
   "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.1",
-  "io.grpc" % "grpc-netty" % "1.0.1",
+  "io.grpc" % "grpc-netty" % "1.13.1",
   "com.trueaccord.scalapb" %% "scalapb-runtime-grpc" % com.trueaccord.scalapb.compiler.Version.scalapbVersion,
   "com.trueaccord.scalapb" %% "scalapb-runtime" % com.trueaccord.scalapb.compiler.Version.scalapbVersion % "protobuf",
   "org.bouncycastle" % "bcpg-jdk15on" % "1.58",
