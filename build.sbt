@@ -77,7 +77,10 @@ lazy val settings = Seq(
 
 lazy val irohaScala = (project in file("."))
   .settings(settings: _*)
-  .settings(name := "iroha-scala")
+  .settings(
+    name := "iroha-scala",
+    organization := "com.castleone"
+  )
   .enablePlugins(ProtocPlugin)
   .settings(
     PB.targets in Compile := Seq(
@@ -85,4 +88,3 @@ lazy val irohaScala = (project in file("."))
     ),
     PB.protoSources in Compile := Seq(file("protos"))
   )
-

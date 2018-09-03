@@ -150,4 +150,216 @@ class IrohaSpec extends AsyncWordSpec {
       }
     }
   }
+//
+//    it("tx and query run right", TxTest) {
+//      val domain = IrohaDomainName(context.testDomain)
+//      val adminName = IrohaAccountName("admin")
+//      val user1Name = IrohaAccountName(createRandomName(10))
+//      val user2Name = IrohaAccountName(createRandomName(10))
+//      val assetName = IrohaAssetName(createRandomName(8))
+//      val adminId = IrohaAccountId(adminName, domain)
+//      val user1Id = IrohaAccountId(user1Name, domain)
+//      val user2Id = IrohaAccountId(user2Name, domain)
+//      val assetId = IrohaAssetId(assetName, domain)
+//
+//      val user1keyPair = Iroha.createNewKeyPair()
+//      val user2keyPair = Iroha.createNewKeyPair()
+//      println(user1keyPair.toHex.publicKey)
+//
+//      val precision = IrohaAssetPrecision(3) // Number of digits after the decimal point
+//
+//      val commands1 = Seq(
+//        Iroha.CommandService.createAccount(user1keyPair.publicKey, user1Name, domain),
+//        Iroha.CommandService.createAccount(user2keyPair.publicKey, user2Name, domain),
+//        Iroha.CommandService.appendRole(user1Id, "money_creator"),
+//        Iroha.CommandService.appendRole(user2Id, "money_creator"),
+//        Iroha.CommandService.createAsset(assetName, domain, precision),
+//        Iroha.CommandService.addAssetQuantity(assetId, IrohaAmount(Long.MaxValue.toString, precision))
+//      )
+//
+//      val f01 = sendTransaction(Iroha.CommandService.createTransaction(adminId, context.adminAccount.keypair, commands1))
+//      // wait for consensus completion
+//      assertTxFutures(Iterable(f01))
+//
+//      val user1keyPair2 = Iroha.createNewKeyPair()
+//      val commands2 = Seq(
+//        // Tx creator must equal addAssetQuantity target account.
+//        Iroha.CommandService.addAssetQuantity(assetId, IrohaAmount("123456", precision)),
+//        Iroha.CommandService.addSignatory(user1Id, user1keyPair2.publicKey),
+//        Iroha.CommandService.removeSignatory(user1Id, user1keyPair.publicKey)
+//      )
+//
+//      val f02 = sendTransaction(Iroha.CommandService.createTransaction(user1Id, user1keyPair, commands2))
+//
+//      val user2keyPair2 = Iroha.createNewKeyPair()
+//      val commands3 = Seq(
+//        // Tx creator must equal addAssetQuantity target account.
+//        Iroha.CommandService.addAssetQuantity(assetId, IrohaAmount("111111", precision)),
+//        Iroha.CommandService.addSignatory(user2Id, user2keyPair2.publicKey),
+//        Iroha.CommandService.removeSignatory(user2Id, user2keyPair.publicKey)
+//      )
+//
+//      val f03 = sendTransaction(Iroha.CommandService.createTransaction(user2Id, user2keyPair, commands3))
+//
+//      // wait for consensus completion
+//      assertTxFutures(Iterable(f02, f03))
+//
+//      val commands4 = Seq(
+//        Iroha.CommandService.transferAsset(user1Id, user2Id, assetId, "purpose", IrohaAmount("10010", precision))
+//      )
+//
+//      val f04 = sendTransaction(Iroha.CommandService.createTransaction(user1Id, user1keyPair2, commands4))
+//
+//      // wait for consensus completion
+//      assertTxFutures(Iterable(f04))
+//
+//      //////////////////////////////////
+//      val queryRes0 = sendQuery(Iroha.QueryService.getAccount(adminId, context.adminAccount.keypair, user1Id))
+//      assert(queryRes0.response.isAccountResponse)
+//      assert(queryRes0.response.accountResponse.isDefined)
+//      assert(queryRes0.response.accountResponse.get.account.isDefined)
+//      assert(queryRes0.response.accountResponse.get.account.get.accountId == user1Id.toString)
+//      assert(queryRes0.response.accountResponse.get.account.get.domainId == user1Id.domain.value)
+//      assert(queryRes0.response.accountResponse.get.account.get.quorum == 1)
+//
+//      val queryRes1 = sendQuery(Iroha.QueryService.getAccountAssets(user1Id, user1keyPair2, user1Id))
+//      assert(queryRes1.response.isAccountAssetsResponse)
+//      assert(queryRes1.response.accountAssetsResponse.isDefined)
+//
+//      val asset = queryRes1.response.accountAssetsResponse.get.accountAssets.find(_.assetId == assetId.toString)
+//
+//      assert(asset.map(_.accountId).contains(user1Id.toString))
+//      assert(asset.map(_.assetId).contains(assetId.toString))
+//      assert(asset.exists(_.balance.nonEmpty))
+//      assert(asset.map(_.balance).contains("113446"))
+//
+//      val queryRes2 = sendQuery(Iroha.QueryService.getAccountAssetTransactions(user1Id, user1keyPair2, user1Id, assetId))
+//      assert(queryRes2.response.isTransactionsResponse)
+//      assert(queryRes2.response.transactionsResponse.isDefined)
+//      assert(queryRes2.response.transactionsResponse.get.transactions.length == 1)
+//
+//      val queryRes3 = sendQuery(Iroha.QueryService.getAccountTransactions(user1Id, user1keyPair2, user1Id))
+//      assert(queryRes3.response.isTransactionsResponse)
+//      assert(queryRes3.response.transactionsResponse.isDefined)
+//      assert(queryRes3.response.transactionsResponse.get.transactions.length == 2)
+//
+//      val queryRes4 = sendQuery(Iroha.QueryService.getSignatories(user1Id, user1keyPair2, user1Id))
+//      assert(queryRes4.response.isSignatoriesResponse)
+//      assert(queryRes4.response.signatoriesResponse.isDefined)
+//      assert(queryRes4.response.signatoriesResponse.get.keys.length == 1)
+//
+//      val queryRes5 = sendQuery(Iroha.QueryService.getAccount(user2Id, user2keyPair2, user2Id))
+//      assert(queryRes5.response.isAccountResponse)
+//      assert(queryRes5.response.accountResponse.isDefined)
+//      assert(queryRes5.response.accountResponse.get.account.isDefined)
+//      assert(queryRes5.response.accountResponse.get.account.get.accountId == user2Id.toString)
+//      assert(queryRes5.response.accountResponse.get.account.get.domainId == user2Id.domain.value)
+//      assert(queryRes5.response.accountResponse.get.account.get.quorum == 1)
+//
+//      val queryRes6 = sendQuery(Iroha.QueryService.getAccountAssets(user2Id, user2keyPair2, user2Id))
+//      assert(queryRes6.response.isAccountAssetsResponse)
+//      assert(queryRes6.response.accountAssetsResponse.isDefined)
+//
+//      val asset6 = queryRes6.response.accountAssetsResponse.get.accountAssets.find(_.assetId == assetId.toString)
+//
+//      assert(asset6.map(_.accountId).contains(user2Id.toString))
+//      assert(asset6.map(_.assetId).contains(assetId.toString))
+//      assert(asset6.exists(_.balance.nonEmpty))
+//      assert(asset6.map(_.balance).contains("121121"))
+//
+//      val queryRes7 = sendQuery(Iroha.QueryService.getAccountAssetTransactions(user2Id, user2keyPair2, user2Id, assetId))
+//      assert(queryRes7.response.isTransactionsResponse)
+//      assert(queryRes7.response.transactionsResponse.isDefined)
+//      assert(queryRes7.response.transactionsResponse.get.transactions.length == 1)
+//
+//      val queryRes8 = sendQuery(Iroha.QueryService.getAccountTransactions(user2Id, user2keyPair2, user2Id))
+//      assert(queryRes8.response.isTransactionsResponse)
+//      assert(queryRes8.response.transactionsResponse.isDefined)
+//      assert(queryRes8.response.transactionsResponse.get.transactions.length == 1)
+//
+//      val queryRes9 = sendQuery(Iroha.QueryService.getSignatories(user2Id, user2keyPair2, user2Id))
+//      assert(queryRes9.response.isSignatoriesResponse)
+//      assert(queryRes9.response.signatoriesResponse.isDefined)
+//      assert(queryRes9.response.signatoriesResponse.get.keys.length == 1)
+//    }
+//
+//    it("tx_counter is to unique to each transaction creater.", TxTest) {
+//      val domain = IrohaDomainName(context.testDomain)
+//      val adminName = IrohaAccountName("admin")
+//      val user1Name = IrohaAccountName(createRandomName(9, "u"))
+//      val user2Name = IrohaAccountName(createRandomName(9, "u"))
+//      val assetName = IrohaAssetName(createRandomName(3, "a"))
+//      val adminId = IrohaAccountId(adminName, domain)
+//      val user1Id = IrohaAccountId(user1Name, domain)
+//      val user2Id = IrohaAccountId(user2Name, domain)
+//      val assetId = IrohaAssetId(assetName, domain)
+//
+//      val user1keyPair = Iroha.createNewKeyPair()
+//      val user2keyPair = Iroha.createNewKeyPair()
+//
+//      val precision = IrohaAssetPrecision(3) // 小数点以下の桁数
+//
+//      val commands = Iterable(
+//        Iroha.CommandService.createAccount(user1keyPair.publicKey, user1Name, domain),
+//        Iroha.CommandService.createAccount(user2keyPair.publicKey, user2Name, domain),
+//        Iroha.CommandService.appendRole(user1Id, "money_creator"),
+//        Iroha.CommandService.appendRole(user2Id, "money_creator"),
+//        Iroha.CommandService.createAsset(assetName, domain, precision)
+//      )
+//
+//      val transaction = Iroha.CommandService.createTransaction(adminId, context.adminAccount.keypair, commands.toSeq)
+//      sendTransaction(transaction)
+//
+//      // Use the same txCounter to check if its unique to the creater.
+//      val transactionForUser1 = Iroha.CommandService.createTransaction(
+//        user1Id, user1keyPair,
+//        Seq(Iroha.CommandService.addAssetQuantity(assetId, IrohaAmount("123456", precision)))
+//      )
+//
+//      val transactionForUser2 = Iroha.CommandService.createTransaction(
+//        user2Id, user2keyPair,
+//        Seq(Iroha.CommandService.addAssetQuantity(assetId, IrohaAmount("111111", precision)))
+//      )
+//
+//      val f1 = sendTransaction(transactionForUser1)
+//      val f2 = sendTransaction(transactionForUser2)
+//
+//      val r = for {
+//        r1 <- f1
+//        r2 <- f2
+//      } yield r1 && r2
+//
+//      assert(Await.result(r, Duration.Inf))
+//    }
+//
+//    it("adding and subtracting the same amount result in the no change in balance.", TxTest) {
+//      val domain = IrohaDomainName(context.testDomain)
+//      val adminId = IrohaAccountId(IrohaAccountName("admin"), domain)
+//      val assetName = IrohaAssetName(createRandomName(3, "a"))
+//      val assetId = IrohaAssetId(assetName, domain)
+//      val precision = IrohaAssetPrecision(3) // 小数点以下の桁数
+//
+//      val amount = IrohaAmount("111", precision)
+//
+//      val commands = Seq(
+//        Iroha.CommandService.createAsset(assetName, domain, precision),
+//        Iroha.CommandService.addAssetQuantity(assetId, amount),
+//        Iroha.CommandService.subtractAssetQuantity(assetId, amount)
+//      )
+//
+//      val r = sendTransaction(Iroha.CommandService.createTransaction(adminId, context.adminAccount.keypair, commands))
+//        .map(
+//          _ => sendQuery(Iroha.QueryService.getAccountAssets(adminId, context.adminAccount.keypair, adminId))
+//        )
+//        .map({
+//          qr =>
+//          val response = qr.response.accountAssetsResponse
+//          val asset = response.flatMap(_.accountAssets.find(_.assetId == assetId.toString))
+//          val balance = asset.map(_.balance).map(BigDecimal.apply)
+//          balance.contains(BigDecimal(0))
+//        })
+//
+//      assert(Await.result(r, Duration.Inf))
+//    }
+//  }
 }
