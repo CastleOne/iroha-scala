@@ -302,6 +302,7 @@ object Iroha {
     case class AccountResponse(response: Responses.AccountResponse) extends MatchedResponse
     case class RolesResponse(response: Responses.RolesResponse) extends MatchedResponse
     case class RolePermissions(response: Responses.RolePermissionsResponse) extends MatchedResponse
+    case class AccountAssetResponse(response: Responses.AccountAssetResponse) extends MatchedResponse
   }
 
   object QueryResponse {
@@ -312,6 +313,7 @@ object Iroha {
       case r if r.isAccountResponse => arg.response.accountResponse.map(AccountResponse.apply)
       case r if r.isRolesResponse => arg.response.rolesResponse.map(RolesResponse.apply)
       case r if r.isRolePermissionsResponse => arg.response.rolePermissionsResponse.map(RolePermissions.apply)
+      case r if r.isAccountAssetsResponse => arg.response.accountAssetsResponse.map(AccountAssetResponse.apply)
       case _ => None
     }
   }
