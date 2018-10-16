@@ -93,7 +93,8 @@ object Iroha {
 
   case class IrohaAccountName(value: String) {
     assert(0 < value.length && value.length <= 32, "accountName length must be between 1 to 32")
-    assert(IrohaValidator.isValidDomain(value), "accountName must satisfy the domain specifications (RFC1305).")
+    assert(IrohaValidator.isAplhaNumberUnderscore(value), "accountName can only be alpha numeric plus a underscore. [a-z_0-9]")
+    assert(IrohaValidator.isValidDomain(value.replaceAll("_", "")), "accountName must satisfy the domain specifications (RFC1305).")
   }
 
   case class IrohaRoleName(value: String) {

@@ -60,6 +60,10 @@ object IrohaValidator {
     str.matches("""^[a-zA-Z0-9]+$""")
   }
 
+  def isAplhaNumberUnderscore(str: String): Boolean = {
+    str.matches("""^[a-z_0-9]+$""")
+  }
+
   // This emulates std::islower.
   // See: http://en.cppreference.com/w/cpp/string/byte/islower
   def isLowerCase(str: String): Boolean = {
