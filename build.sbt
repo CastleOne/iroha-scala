@@ -1,6 +1,6 @@
 name := "iroha-scala"
 
-version := "1.0-SNAPSHOT"
+version := "1.0"
 
 organization := "castleone"
 
@@ -44,31 +44,11 @@ lazy val settings = Seq(
 
   fork in Test := true,
 
-  publishMavenStyle := true,
+  publishMavenStyle := false,
 
   publishArtifact in Test := false,
 
-  pomIncludeRepository := { _ => false },
-
-  pomExtra := <url>https://github.com/CastleOne/iroha-scala</url>
-    <licenses>
-      <license>
-        <name>The Apache License, Version 2.0</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0</url>
-        <distribution>repo</distribution>
-      </license>
-    </licenses>
-    <scm>
-      <url>git@github.com:hyperledger/iroha-scala.git</url>
-      <connection>scm:git:git@github.com:CastleOne/iroha-scala.git</connection>
-    </scm>
-    <developers>
-      <developer>
-        <id>hyperledger</id>
-        <name>iroha-scala</name>
-        <url>https://github.com/CastleOne/iroha-scala</url>
-      </developer>
-    </developers>
+  pomIncludeRepository := { _ => false }
 )
 
 lazy val irohaScala = (project in file("."))
