@@ -2,6 +2,10 @@ name := "iroha-scala"
 
 version := "1.0-SNAPSHOT"
 
+organization := "castleone"
+
+licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html"))
+
 val PROJECT_SCALA_VERSION = "2.12.6"
 
 scalaVersion := PROJECT_SCALA_VERSION
@@ -46,15 +50,7 @@ lazy val settings = Seq(
 
   pomIncludeRepository := { _ => false },
 
-  publishTo <<= version { (v: String) =>
-    val nexus = "https://oss.sonatype.org/"
-    if (v.trim.endsWith("SNAPSHOT"))
-      Some("snapshots" at nexus + "content/repositories/snapshots")
-    else
-      Some("releases"  at nexus + "service/local/staging/deploy/maven2")
-  },
-
-  pomExtra := <url>https://github.com/hyperledger/iroha-scala</url>
+  pomExtra := <url>https://github.com/CastleOne/iroha-scala</url>
     <licenses>
       <license>
         <name>The Apache License, Version 2.0</name>
@@ -64,13 +60,13 @@ lazy val settings = Seq(
     </licenses>
     <scm>
       <url>git@github.com:hyperledger/iroha-scala.git</url>
-      <connection>scm:git:git@github.com:hyperledger/iroha-scala.git</connection>
+      <connection>scm:git:git@github.com:CastleOne/iroha-scala.git</connection>
     </scm>
     <developers>
       <developer>
         <id>hyperledger</id>
         <name>iroha-scala</name>
-        <url>https://github.com/hyperledger/iroha-scala</url>
+        <url>https://github.com/CastleOne/iroha-scala</url>
       </developer>
     </developers>
 )
@@ -79,8 +75,10 @@ lazy val irohaScala = (project in file("."))
   .settings(settings: _*)
   .settings(
     name := "iroha-scala",
-    organization := "com.castleone"
-  )
+    organization := "com.castleone",
+    bintrayRepository := "iroha-scala",
+    bintrayOrganization in bintray := None
+)
   .enablePlugins(ProtocPlugin)
   .settings(
     PB.targets in Compile := Seq(
