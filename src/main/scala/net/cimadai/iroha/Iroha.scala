@@ -300,10 +300,15 @@ object Iroha {
 
   object MatchedResponse {
     import iroha.protocol.{qry_responses => Responses}
+    case class AccountAssetsResponse(response: Responses.AccountAssetResponse) extends MatchedResponse
+    case class AccountDetailResponse(response: Responses.AccountDetailResponse) extends MatchedResponse
     case class AccountResponse(response: Responses.AccountResponse) extends MatchedResponse
+    case class ErrorResponse(response: Responses.ErrorResponse) extends MatchedResponse
+    case class SignatoriesResponse(response: Responses.SignatoriesResponse) extends MatchedResponse
+    case class TransactionsResponse(response: Responses.TransactionsResponse) extends MatchedResponse
+    case class AssetResponse(response: Responses.AssetResponse) extends MatchedResponse
     case class RolesResponse(response: Responses.RolesResponse) extends MatchedResponse
-    case class RolePermissions(response: Responses.RolePermissionsResponse) extends MatchedResponse
-    case class AccountAssetResponse(response: Responses.AccountAssetResponse) extends MatchedResponse
+    case class RolePermissionsResponse(response: Responses.RolePermissionsResponse) extends MatchedResponse
   }
 
   object QueryResponse {
@@ -311,10 +316,15 @@ object Iroha {
     import MatchedResponse._
 
     def unapply(arg: QueryResponse): Option[MatchedResponse] = arg.response match {
+      case r if r.isAccountAssetsResponse => arg.response.accountAssetsResponse.map(AccountAssetsResponse.apply)
+      case r if r.isAccountDetailResponse => arg.response.accountDetailResponse.map(AccountDetailResponse.apply)
       case r if r.isAccountResponse => arg.response.accountResponse.map(AccountResponse.apply)
+      case r if r.isErrorResponse => arg.response.errorResponse.map(ErrorResponse.apply)
+      case r if r.isSignatoriesResponse => arg.response.signatoriesResponse.map(SignatoriesResponse.apply)
+      case r if r.isTransactionsResponse => arg.response.transactionsResponse.map(TransactionsResponse.apply)
+      case r if r.isAssetResponse => arg.response.assetResponse.map(AssetResponse.apply)
       case r if r.isRolesResponse => arg.response.rolesResponse.map(RolesResponse.apply)
-      case r if r.isRolePermissionsResponse => arg.response.rolePermissionsResponse.map(RolePermissions.apply)
-      case r if r.isAccountAssetsResponse => arg.response.accountAssetsResponse.map(AccountAssetResponse.apply)
+      case r if r.isRolePermissionsResponse => arg.response.rolePermissionsResponse.map(RolePermissionsResponse.apply)
       case _ => None
     }
   }
