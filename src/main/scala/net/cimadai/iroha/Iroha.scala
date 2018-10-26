@@ -267,32 +267,44 @@ object Iroha {
       createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccount(queries.GetAccount(accountId.toString)))
     }
 
-    def getAccountAssets(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId): Query = {
-      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccountAssets(queries.GetAccountAssets(accountId)))
-    }
-
-    def getAccountAssetTransactions(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId, assetId: IrohaAssetId): Query = {
-      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccountAssetTransactions(queries.GetAccountAssetTransactions(accountId.toString, assetId.toString)))
+    def getSignatories(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId): Query = {
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccountSignatories(queries.GetSignatories(accountId.toString)))
     }
 
     def getAccountTransactions(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId): Query = {
       createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccountTransactions(queries.GetAccountTransactions(accountId.toString)))
     }
 
-    def getAssetInfo(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, assetId: IrohaAssetId): Query = {
-      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAssetInfo(queries.GetAssetInfo(assetId.toString)))
+    def getAccountAssetTransactions(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId, assetId: IrohaAssetId): Query = {
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccountAssetTransactions(queries.GetAccountAssetTransactions(accountId.toString, assetId.toString)))
     }
 
-    def getRolePermissions(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, roleId: IrohaRoleId): Query = {
-      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetRolePermissions(queries.GetRolePermissions(roleId.toString)))
+    def getTransactions(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, txHashes: Seq[Array[Byte]]): Query = {
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetTransactions(queries.GetTransactions(txHashes.map(c => ByteString.copyFrom(c)))))
+    }
+
+    def getAccountAssets(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId): Query = {
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccountAssets(queries.GetAccountAssets(accountId)))
+    }
+
+    def getAccountDetail(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId): Query = {
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccount(queries.GetAccount(accountId.toString)))
     }
 
     def getRoles(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair): Query = {
       createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetRoles(queries.GetRoles()))
     }
 
-    def getSignatories(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId): Query = {
-      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccountSignatories(queries.GetSignatories(accountId.toString)))
+    def getRolePermissions(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, roleId: IrohaRoleId): Query = {
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetRolePermissions(queries.GetRolePermissions(roleId.toString)))
+    }
+
+    def getAssetInfo(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, assetId: IrohaAssetId): Query = {
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAssetInfo(queries.GetAssetInfo(assetId.toString)))
+    }
+
+    def getPendingTransactions(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair): Query = {
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetPendingTransactions(queries.GetPendingTransactions()))
     }
   }
 

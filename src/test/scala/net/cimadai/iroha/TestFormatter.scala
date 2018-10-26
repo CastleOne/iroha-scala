@@ -22,7 +22,7 @@ object TestFormatter {
   def queryResponse(irohaQueryResponse: IrohaQueryResponse): String = irohaQueryResponse match {
     case Iroha.QueryResponse(AccountResponse(r)) => "[RES] " + r.account.map(a => "Account " + a.accountId + "@" + a.domainId)
     case Iroha.QueryResponse(RolesResponse(r)) => "[RES] " + r.roles.length + " roles"
-    case Iroha.QueryResponse(RolePermissions(r)) => "[RES] role permissions: " + r.permissions.map(_.name).mkString(", ")
+    case Iroha.QueryResponse(RolePermissionsResponse(r)) => "[RES] role permissions: " + r.permissions.map(_.name).mkString(", ")
     case _ => "[RES] Unknown Query Response"
   }
 }

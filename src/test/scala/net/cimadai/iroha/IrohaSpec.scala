@@ -100,7 +100,7 @@ class IrohaSpec extends AsyncWordSpec {
           rolesQuery <- Future(committed).collect({ case true => sendQuery(rolesQuery) })
           roles = Some(rolesQuery).collect({ case Iroha.QueryResponse(RolesResponse(x)) => x.roles })
           permissionsQuery <- Future(committed).collect({ case true => sendQuery(rolePermissions) })
-          responsePermissions = Some(permissionsQuery).collect({ case Iroha.QueryResponse(RolePermissions(x)) => x.permissions })
+          responsePermissions = Some(permissionsQuery).collect({ case Iroha.QueryResponse(RolePermissionsResponse(x)) => x.permissions })
         } yield {
           println(TestFormatter.queryResponse(rolesQuery))
           println(TestFormatter.queryResponse(permissionsQuery))
