@@ -106,6 +106,11 @@ object Iroha {
     assert(0 <= value && value <= 255, "precision must be between 0 to 255")
   }
 
+  case class IrohaTransferDescription(value: String) {
+    assert(64 >= value.length, "transferDescription size should be less than or equal to 64")
+    override def toString: String = value
+  }
+
   case class IrohaAccountId(accountName: IrohaAccountName, domain: IrohaDomainName) {
     override def toString: String = s"${accountName.value}@${domain.value}"
   }
@@ -227,7 +232,7 @@ object Iroha {
     def subtractAssetQuantity(assetId: IrohaAssetId, amount: IrohaAmount): Command =
       Command(SubtractAssetQuantity(commands.SubtractAssetQuantity(assetId, amount.value)))
 
-    def transferAsset(srcAccountId: IrohaAccountId, destAccountId: IrohaAccountId, assetId: IrohaAssetId, description: String, amount: IrohaAmount): Command =
+    def transferAsset(srcAccountId: IrohaAccountId, destAccountId: IrohaAccountId, assetId: IrohaAssetId, description: IrohaTransferDescription, amount: IrohaAmount): Command =
       Command(TransferAsset(commands.TransferAsset(
         srcAccountId,
         destAccountId,
