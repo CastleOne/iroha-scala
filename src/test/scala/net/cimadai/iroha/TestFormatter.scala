@@ -9,10 +9,10 @@ import net.i2p.crypto.eddsa.Utils
 object TestFormatter {
   import Commands._
 
-  private def pubKey(bytes: ByteString): String = "[" + Utils.bytesToHex(bytes.toByteArray.take(6)) + "]"
+  private def pubKey(bytes: String): String = s"[$bytes]"
 
   def command(irohaCommand: IrohaCommand): String = irohaCommand match {
-    case IrohaCommand(CreateAccount(value)) => "[TX] Creating account " + value.accountName + "@" + value.domainId + " " + pubKey(value.mainPubkey)
+    case IrohaCommand(CreateAccount(value)) => "[TX] Creating account " + value.accountName + "@" + value.domainId + " " + pubKey(value.publicKey)
     case IrohaCommand(CreateRole(value)) => "[TX] Creating role " + value.roleName + " with permissions: " + value.permissions.map(_.name).mkString(", ")
     case IrohaCommand(AppendRole(value)) => "[TX] Appending role " + value.roleName + " to account " + value.accountId
     case _ => "[TX] Unknown Command"

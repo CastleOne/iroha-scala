@@ -25,8 +25,8 @@ class IrohaSpec extends AsyncWordSpec {
   private implicit val channel: ManagedChannel = ManagedChannelBuilder.forAddress(context.grpcHost, context.grpcPort)
     .usePlaintext(true)
     .build()
-  private implicit val commandGrpc: CommandServiceGrpc.CommandServiceBlockingStub = CommandServiceGrpc.blockingStub(channel)
-  private implicit val queryGrpc: QueryServiceGrpc.QueryServiceBlockingClient = QueryServiceGrpc.blockingStub(channel)
+  private implicit val commandGrpc: CommandService_v1Grpc.CommandService_v1BlockingStub = CommandService_v1Grpc.blockingStub(channel)
+  private implicit val queryGrpc: QueryService_v1Grpc.QueryService_v1BlockingStub = QueryService_v1Grpc.blockingStub(channel)
 
   "Iroha" when {
     "verify" should {

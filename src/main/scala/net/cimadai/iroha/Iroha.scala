@@ -72,7 +72,7 @@ object Iroha {
   case class ToriiError(message: String, txStatus: TxStatus) extends Error(message)
 
   object ToriiError {
-    def unapply(response: ToriiResponse): Option[ToriiError] = (response.errorMessage, response.txStatus) match {
+    def unapply(response: ToriiResponse): Option[ToriiError] = (response.errOrCmdName, response.txStatus) match {
       case (msg, TxStatus.STATELESS_VALIDATION_FAILED) => Some(ToriiError(s"Stateless Validation Failed: $msg", response.txStatus))
       case (msg, TxStatus.STATEFUL_VALIDATION_FAILED) => Some(ToriiError(s"Stateful Validation Failed: $msg", response.txStatus))
       case (msg, TxStatus.NOT_RECEIVED) => Some(ToriiError(s"Transaction Not Received: $msg", response.txStatus))
@@ -187,8 +187,8 @@ object Iroha {
       val sha3_256 = new SHA3.Digest256()
       val hash = sha3_256.digest(payload.toByteArray)
       val sig = Signature(
-        ByteString.copyFrom(creatorKeyPair.publicKey.toPublicKeyBytes),
-        ByteString.copyFrom(Iroha.sign(creatorKeyPair, hash))
+        Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes),
+        Utils.bytesToHex(Iroha.sign(creatorKeyPair, hash))
       )
       Transaction(Some(payload), Seq(sig))
     }
@@ -212,10 +212,10 @@ object Iroha {
       Command(AddPeer(commands.AddPeer(peer)))
 
     def addSignatory(accountId: IrohaAccountId, publicKey: EdDSAPublicKey): Command =
-      Command(AddSignatory(commands.AddSignatory(accountId, ByteString.copyFrom(publicKey.toPublicKeyBytes))))
+      Command(AddSignatory(commands.AddSignatory(accountId, Utils.bytesToHex(publicKey.toPublicKeyBytes))))
 
     def createAccount(publicKey: EdDSAPublicKey, accountName: IrohaAccountName, domainName: IrohaDomainName): Command =
-      Command(CreateAccount(commands.CreateAccount(accountName.value, domainName.value, mainPubkey = ByteString.copyFrom(publicKey.toPublicKeyBytes))))
+      Command(CreateAccount(commands.CreateAccount(accountName.value, domainName.value, Utils.bytesToHex(publicKey.toPublicKeyBytes))))
 
     def createAsset(assetName: IrohaAssetName, domainName: IrohaDomainName, precision: IrohaAssetPrecision): Command =
       Command(CreateAsset(commands.CreateAsset(assetName.value, domainName.value, precision.value)))
@@ -224,10 +224,10 @@ object Iroha {
       Command(CreateDomain(commands.CreateDomain(domainName.value, defaultRoleName)))
 
     def removeSignatory(accountId: IrohaAccountId, publicKey: EdDSAPublicKey): Command =
-      Command(RemoveSign(commands.RemoveSignatory(accountId, ByteString.copyFrom(publicKey.toPublicKeyBytes))))
+      Command(RemoveSignatory(commands.RemoveSignatory(accountId, Utils.bytesToHex(publicKey.toPublicKeyBytes))))
 
-    def setQuorum(accountId: IrohaAccountId, quorum: Int): Command =
-      Command(SetQuorum(commands.SetAccountQuorum(accountId, quorum)))
+    def setAccountQuorum(accountId: IrohaAccountId, quorum: Int): Command =
+      Command(SetAccountQuorum(commands.SetAccountQuorum(accountId, quorum)))
 
     def subtractAssetQuantity(assetId: IrohaAssetId, amount: IrohaAmount): Command =
       Command(SubtractAssetQuantity(commands.SubtractAssetQuantity(assetId, amount.value)))
@@ -241,7 +241,7 @@ object Iroha {
         amount.value)))
 
     def txStatusRequest(transaction: Transaction): TxStatusRequest =
-      TxStatusRequest(ByteString.copyFrom(Iroha.CommandService.txHash(transaction)))
+      TxStatusRequest(Utils.bytesToHex(Iroha.CommandService.txHash(transaction)))
   }
 
   object QueryService {
@@ -262,8 +262,8 @@ object Iroha {
       val sha3_256 = new SHA3.Digest256()
       val hash = sha3_256.digest(payload.toByteArray)
       val sig = Signature(
-        ByteString.copyFrom(creatorKeyPair.publicKey.toPublicKeyBytes),
-        ByteString.copyFrom(Iroha.sign(creatorKeyPair, hash))
+        Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes),
+        Utils.bytesToHex(Iroha.sign(creatorKeyPair, hash))
       )
       Query(Some(payload), Some(sig))
     }
@@ -273,7 +273,7 @@ object Iroha {
     }
 
     def getSignatories(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId): Query = {
-      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetAccountSignatories(queries.GetSignatories(accountId.toString)))
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetSignatories(queries.GetSignatories(accountId.toString)))
     }
 
     def getAccountTransactions(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId): Query = {
@@ -285,7 +285,7 @@ object Iroha {
     }
 
     def getTransactions(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, txHashes: Seq[Array[Byte]]): Query = {
-      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetTransactions(queries.GetTransactions(txHashes.map(c => ByteString.copyFrom(c)))))
+      createQuery(creatorAccountId, creatorKeyPair, Query.Payload.Query.GetTransactions(queries.GetTransactions(txHashes.map(Utils.bytesToHex))))
     }
 
     def getAccountAssets(creatorAccountId: IrohaAccountId, creatorKeyPair: Ed25519KeyPair, accountId: IrohaAccountId): Query = {

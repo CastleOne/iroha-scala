@@ -1,8 +1,8 @@
 package net.cimadai.iroha
 
 import iroha.protocol.endpoint.{ToriiResponse, TxStatus, TxStatusRequest}
-import iroha.protocol.endpoint.CommandServiceGrpc.{CommandServiceBlockingStub => CommandService}
-import iroha.protocol.endpoint.QueryServiceGrpc.{QueryServiceBlockingClient => QueryService}
+import iroha.protocol.endpoint.CommandService_v1Grpc.{CommandService_v1BlockingStub => CommandService}
+import iroha.protocol.endpoint.QueryService_v1Grpc.{QueryService_v1BlockingStub => QueryService}
 import iroha.protocol.qry_responses.QueryResponse
 import iroha.protocol.queries.Query
 import iroha.protocol.transaction.Transaction
