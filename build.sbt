@@ -1,6 +1,6 @@
 name := "iroha-scala"
 
-version := "1.0.2"
+version := "1.0.3"
 
 organization := "castleone"
 

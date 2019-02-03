@@ -107,7 +107,7 @@ object Iroha {
   }
 
   case class IrohaTransferDescription(value: String) {
-    assert(64 >= value.length, "transferDescription size should be less than or equal to 64")
+    assert(64 <= value.length, "transferDescription size should be less than or equal to 64")
     override def toString: String = value
   }
 
