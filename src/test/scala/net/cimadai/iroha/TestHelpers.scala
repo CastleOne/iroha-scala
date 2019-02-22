@@ -8,7 +8,7 @@ import iroha.protocol.queries.Query
 import iroha.protocol.transaction.Transaction
 import net.cimadai.iroha.Iroha.{IrohaAccountId, IrohaAccountName, IrohaDomainName, ToriiError}
 import net.i2p.crypto.eddsa.Utils
-import org.bouncycastle.jcajce.provider.digest.SHA3
+import org.spongycastle.jcajce.provider.digest.SHA3
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration

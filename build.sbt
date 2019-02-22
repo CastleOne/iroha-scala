@@ -1,68 +1,82 @@
-name := "iroha-scala"
+organization in ThisBuild := "org.hyperledger"
+scalaVersion in ThisBuild := "2.12.8"
+licenses in ThisBuild += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html"))
 
-version := "1.0.5"
 
-organization := "castleone"
+val versions = new {
+  val scalapbc = scalapb.compiler.Version.scalapbVersion
+  val grpc = scalapb.compiler.Version.grpcJavaVersion
+  val spongyCastle = "1.58.0.0"
+  val i2p          = "0.2.0"
+  val monix        = "3.0.0-RC2"
+  val utest        = "0.6.6"
+}
 
-licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html"))
+lazy val librarySettings: Seq[Setting[_]] =
+  Seq(
+    libraryDependencies ++=
+      Seq(
+        "io.grpc"                           %  "grpc-netty"           % versions.grpc,
+        "com.thesamet.scalapb"              %% "scalapb-runtime-grpc" % versions.scalapbc,
+        "com.thesamet.scalapb"              %% "scalapb-runtime-grpc" % versions.scalapbc % "protobuf",
+        "com.madgag.spongycastle"           %  "bcpg-jdk15on"         % versions.spongyCastle,
+        "net.i2p.crypto"                    %  "eddsa"                % versions.i2p,
+        "io.monix"                          %% "monix"                % versions.monix,
+        "com.lihaoyi"                       %% "utest"                % versions.utest      % "test",
+      )
+  )
 
-val PROJECT_SCALA_VERSION = "2.12.6"
+lazy val compilerSettings: Seq[Setting[_]] =
+  Seq(
+    javacOptions ++= Seq(
+      "-source", "1.8", 
+      "-target", "1.8", 
+      "-encoding", "UTF-8",
+    ),
+    scalacOptions ++= Seq(
+      "-target:jvm-1.8",
+      "-encoding", "UTF-8",
+      "-unchecked",
+      "-deprecation",
+      "-Xfuture",
+      "-Yno-adapted-args",
+      "-Ywarn-dead-code",
+      "-Ywarn-numeric-widen",
+      "-Ywarn-value-discard",
+      "-Ywarn-unused",
+    ),
+  )
 
-scalaVersion := PROJECT_SCALA_VERSION
+lazy val testSettings: Seq[Setting[_]] =
+  Seq(
+    fork in Test := true,
+  )
+  
+lazy val publishSettings: Seq[Setting[_]] =
+  Seq(
+    publishMavenStyle := false,
+    publishArtifact in Test := false,
+    pomIncludeRepository := { _ => false },
+    //FIXME useGpg in xxxGlobalScope := true
+    //TODO: bintrayRepository := "iroha-scala",
+    //TODO: bintrayOrganization in bintray := None,
+  )
 
-useGpg in GlobalScope := true
+lazy val grpcSettings: Seq[Setting[_]] =
+  Seq(
+    PB.targets in Compile :=
+      Seq(
+        scalapb.gen() -> (sourceManaged in Compile).value,
+      )
+  )
 
-lazy val libraries = Seq(
-  "org.scala-lang.modules" %% "scala-xml" % "1.1.0",
-  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.1",
-  "io.grpc" % "grpc-netty-shaded" % "1.13.1",
-  "com.trueaccord.scalapb" %% "scalapb-runtime-grpc" % com.trueaccord.scalapb.compiler.Version.scalapbVersion,
-  "com.trueaccord.scalapb" %% "scalapb-runtime" % com.trueaccord.scalapb.compiler.Version.scalapbVersion % "protobuf",
-  "org.bouncycastle" % "bcpg-jdk15on" % "1.58",
-  "net.i2p.crypto" % "eddsa" % "0.2.0",
-  "org.scalatest" %% "scalatest" % "3.0.5" % "test"
-)
-
-lazy val settings = Seq(
-  organization := "org.hyperledger",
-  scalaVersion := PROJECT_SCALA_VERSION,
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-encoding", "UTF-8"),
-  javaOptions ++= Seq("-Xmx1G"),
-  scalacOptions ++= Seq(
-    "-target:jvm-1.8",
-    "-encoding", "UTF-8",
-    "-unchecked",
-    "-deprecation",
-    "-Xfuture",
-    "-Yno-adapted-args",
-    "-Ywarn-dead-code",
-    "-Ywarn-numeric-widen",
-    "-Ywarn-value-discard",
-    "-Ywarn-unused"
-  ),
-  libraryDependencies ++= libraries,
-
-  fork in Test := true,
-
-  publishMavenStyle := false,
-
-  publishArtifact in Test := false,
-
-  pomIncludeRepository := { _ => false }
-)
 
 lazy val irohaScala = (project in file("."))
-  .settings(settings: _*)
   .settings(
     name := "iroha-scala",
-    organization := "com.castleone",
-    bintrayRepository := "iroha-scala",
-    bintrayOrganization in bintray := None
-)
-  .enablePlugins(ProtocPlugin)
-  .settings(
-    PB.targets in Compile := Seq(
-      scalapb.gen() -> (sourceManaged in Compile).value
-    ),
-    PB.protoSources in Compile := Seq(file("protos"))
   )
+  .settings(librarySettings: _*)
+  .settings(compilerSettings: _*)
+  .settings(testSettings: _*)
+  .settings(grpcSettings: _*)
+  .enablePlugins(ProtocPlugin)
