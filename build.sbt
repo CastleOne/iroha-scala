@@ -4,6 +4,9 @@ licenses in ThisBuild += ("Apache-2.0", url("https://www.apache.org/licenses/LIC
 
 
 val versions = new {
+  val dottyVersion = "0.13.0-RC1"
+  val scala212Version = "2.12.8"
+
   val scalapbc = scalapb.compiler.Version.scalapbVersion
   val grpc = scalapb.compiler.Version.grpcJavaVersion
   val spongyCastle = "1.58.0.0"
@@ -28,6 +31,8 @@ lazy val librarySettings: Seq[Setting[_]] =
 
 lazy val compilerSettings: Seq[Setting[_]] =
   Seq(
+    scalaVersion := versions.scala212Version,
+    crossScalaVersions := Seq(versions.dottyVersion, versions.scala212Version),
     javacOptions ++= Seq(
       "-source", "1.8", 
       "-target", "1.8", 
@@ -38,8 +43,8 @@ lazy val compilerSettings: Seq[Setting[_]] =
       "-encoding", "UTF-8",
       "-unchecked",
       "-deprecation",
-      "-Xfuture",
-      "-Yno-adapted-args",
+      //XXX "-Xfuture",
+      //XXX "-Yno-adapted-args",
       "-Ywarn-dead-code",
       "-Ywarn-numeric-widen",
       "-Ywarn-value-discard",

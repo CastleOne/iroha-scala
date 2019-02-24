@@ -1,5 +1,6 @@
 package net.cimadai.iroha
 
+/*
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import iroha.protocol.endpoint._
 import iroha.protocol.primitive.RolePermission
@@ -363,3 +364,4 @@ class IrohaSpec extends AsyncWordSpec {
 //    }
 //  }
 }
+*/

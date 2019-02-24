@@ -14,51 +14,34 @@ package net.cimadai.iroha
   * limitations under the License.
   */
 
-import iroha.protocol.commands.Command
-import iroha.protocol.commands.Command.Command._
-import iroha.protocol.endpoint.{ToriiResponse, TxStatus, TxStatusRequest}
-import iroha.protocol.primitive._
-import iroha.protocol.queries.Query
-import iroha.protocol.transaction.Transaction
-import iroha.protocol.{commands, queries}
-import net.cimadai.crypto.{SHA3EdDSAParameterSpec, SHA3EdDSAPrivateKeySpec}
-import net.i2p.crypto.eddsa.spec.EdDSAPublicKeySpec
-import net.i2p.crypto.eddsa.{EdDSAEngine, EdDSAPrivateKey, EdDSAPublicKey, Utils}
-import org.spongycastle.jcajce.provider.digest.SHA3
-import java.util.concurrent.atomic.AtomicLong
-
 object Iroha {
+  import iroha.protocol.commands.Command
+  import iroha.protocol.commands.Command.Command._
+  import iroha.protocol.endpoint.{ToriiResponse, TxStatus, TxStatusRequest}
+  import iroha.protocol.primitive._
+  import iroha.protocol.queries.Query
+  import iroha.protocol.transaction.Transaction
+  import iroha.protocol.{commands, queries}
+  import net.cimadai.crypto.{SHA3EdDSAParameter, SHA3EdDSAPrivateKey, SHA3EdDSAPublicKey}
+  import net.i2p.crypto.eddsa.spec.EdDSAPublicKeySpec
+  import net.i2p.crypto.eddsa.{EdDSAEngine, EdDSAPrivateKey, EdDSAPublicKey, Utils}
+  import org.spongycastle.jcajce.provider.digest.SHA3
+  import java.util.concurrent.atomic.AtomicLong
 
   private val queryCounter = new AtomicLong(1) //FIXME: code review
 
-  implicit class EdDSAPublicKeyExt(pub: EdDSAPublicKey) {
-    def toPublicKeyBytes: Array[Byte] = pub.getAbyte
-
-    def toPublicKeyHex: String = Utils.bytesToHex(pub.toPublicKeyBytes)
-  }
-
-  implicit class EdDSAPrivateKeyExt(priv: EdDSAPrivateKey) {
-    def toPublicKeyBytes: Array[Byte] = priv.getAbyte
-
-    def toPublicKeyHex: String = Utils.bytesToHex(priv.toPublicKeyBytes)
-
-    def toPrivateKeyBytes: Array[Byte] = priv.getH
-
-    def toPrivateKeyHex: String = Utils.bytesToHex(priv.toPrivateKeyBytes)
-  }
-
-  case class Ed25519KeyPair(privateKey: EdDSAPrivateKey, publicKey: EdDSAPublicKey) {
+  case class SHA3Ed25519KeyPair(privateKey: SHA3EdDSAPrivateKey, publicKey: SHA3EdDSAPublicKey) {
     def toHex: Ed25519KeyPairHex = Ed25519KeyPairHex(privateKey.toPrivateKeyHex)
   }
 
-  object Ed25519KeyPairHex {
-    def apply (privateKeyHex: String): Ed25519KeyPairHex = {
+  object SHA3Ed25519KeyPairHex {
+    def apply (privateKeyHex: String): SHA3Ed25519KeyPairHex = {
       Ed25519KeyPairHex(Utils.hexToBytes(privateKeyHex))
     }
   }
 
   case class Ed25519KeyPairHex(privateKeyBytes: Array[Byte]) {
-    private val sKey = new EdDSAPrivateKey(SHA3EdDSAPrivateKeySpec(spec, privateKeyBytes))
+    private val sKey = new EdDSAPrivateKey(SHA3EdDSAPrivateKey(spec, privateKeyBytes))
     private val pKey = new EdDSAPublicKey(new EdDSAPublicKeySpec(sKey.toPublicKeyBytes, spec))
 
     val publicKey: String = sKey.toPublicKeyHex
@@ -102,12 +85,41 @@ object Iroha {
         case _                   => Failure(new IllegalArgumentException(s"invalid domain name: ${value}"))
       }
 
-    //-- credits: http://www.mkyong.com/regular-expressions/domain-name-regular-expression-example
+    //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
     /** Regular expression which matches a domain name */
     val regexDomainName = "^(xn--)?((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}$".r
 
     /** Maximum length for a domain name */
     val lengthDomainName = 164
+
+    //------------
+
+    /** BLOCKING: Parse any IPv4 address or IPv6 address or domain name */
+    def parsePeerAddress(value: String): Try[String] = ???
+
+
+    /** BLOCKING: Parse IPv4 address */
+    def parseIPv4(value: String): Try[String] =
+      value match {
+        case regexIPv4(_*) => Success(value)
+        case _             => Failure(new IllegalArgumentException(s"invalid IPv4 address name: ${value}"))
+      }
+
+    /** BLOCKING: Parse IPv6 address */
+    def parseIPv6(value: String): Try[String] =
+      value match {
+        case regexIPv6(_*) => Success(value)
+        case _             => Failure(new IllegalArgumentException(s"invalid IPv4 address name: ${value}"))
+      }
+
+    //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
+    /** Regular expression which matches a IPv4 address */
+    val regexIPv4 = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$".r
+
+
+    //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
+    /** Regular expression which matches a IPv6 address */
+    val regexIPv6 = "^(?:(?:(?:[A-F0-9]{1,4}:){6}|(?=(?:[A-F0-9]{0,4}:){0,6}(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$)(([0-9A-F]{1,4}:){0,5}|:)((:[0-9A-F]{1,4}){1,5}:|:))(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}|(?=(?:[A-F0-9]{0,4}:){0,7}[A-F0-9]{0,4}$)(([0-9A-F]{1,4}:){1,7}|:)((:[0-9A-F]{1,4}){1,7}|:))$".r
 
     //------------
 
@@ -346,13 +358,16 @@ object Iroha {
         .map(description => impl(description))
   }
 
-  trait PeerAddress extends Display
+  trait PeerAddress extends Display {
+    def toPeer: Peer
+  }
   object PeerAddress extends Validation {
     import monix.eval.Task
     import scala.util.Try
 
     private case class impl(address: String, publicKey: EdDSAPublicKey) extends PeerAddress {
       override def toString: String = address.toString
+      override def toPeer: Peer = iroha.protocol.primitive.Peer(address, Utils.bytesToHex(publicKey.getAbyte))
     }
 
     /** Asynchronously builds [PeerAddress] from [Domain] and a [EdDSAPublicKey] */
@@ -367,31 +382,19 @@ object Iroha {
         .map(address => impl(address, publicKey))
   }
 
-
-
-
-
-  /*
-  case class IrohaPeer(address: String, publicKey: EdDSAPublicKey) {
-    def byteString: ByteString = ByteString.copyFrom(publicKey.toPublicKeyBytes)
-  }
-  */
-
   //--------------------------------------------------------------------------------------------------------------------
-
-  private val spec = new SHA3EdDSAParameterSpec
 
   private def withEd25519[T](f: EdDSAEngine => T): T = {
     val signature = new EdDSAEngine(new SHA3.Digest512())
     f(signature)
   }
 
-  def createNewKeyPair(): Ed25519KeyPair = {
+  def createNewKeyPair(): Try[SHA3Ed25519KeyPair] = Try {
     val seed = Array.fill[Byte](32) {0x0}
     new scala.util.Random(new java.security.SecureRandom()).nextBytes(seed)
-    val sKey = new EdDSAPrivateKey(SHA3EdDSAPrivateKeySpec(seed, spec))
-    val vKey = new EdDSAPublicKey(new EdDSAPublicKeySpec(sKey.toPublicKeyBytes, spec))
-    Ed25519KeyPair(sKey, vKey)
+    val sKey = SHA3EdDSAPrivateKey(seed)
+    val vKey = SHA3EdDSAPublicKey(sKey.toPublicKeyBytes)
+    SHA3Ed25519KeyPair(sKey, vKey)
   }
 
   def createKeyPairFromHex(privateKeyHex: String): Ed25519KeyPair = {
@@ -452,8 +455,8 @@ object Iroha {
     def revokePermission(account: Account, permissions: GrantablePermission): Command =
       Command(RevokePermission(commands.RevokePermission(account, permissions)))
 
-    def addPeer(peer: Option[PeerAddress]): Command =
-      Command(AddPeer(commands.AddPeer(peer)))
+    def addPeer(peer: PeerAddress): Command =
+      Command(AddPeer(commands.AddPeer(Some(peer))))
 
     def addSignatory(account: Account, publicKey: EdDSAPublicKey): Command =
       Command(AddSignatory(commands.AddSignatory(account, Utils.bytesToHex(publicKey.toPublicKeyBytes))))

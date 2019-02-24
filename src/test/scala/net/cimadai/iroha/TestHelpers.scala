@@ -6,7 +6,7 @@ import iroha.protocol.endpoint.QueryService_v1Grpc.{QueryService_v1BlockingStub 
 import iroha.protocol.qry_responses.QueryResponse
 import iroha.protocol.queries.Query
 import iroha.protocol.transaction.Transaction
-import net.cimadai.iroha.Iroha.{IrohaAccountId, IrohaAccountName, IrohaDomainName, ToriiError}
+import net.cimadai.iroha.Iroha.{Account, Domain, ToriiError}
 import net.i2p.crypto.eddsa.Utils
 import org.spongycastle.jcajce.provider.digest.SHA3
 
@@ -17,15 +17,16 @@ import scala.util.Random
 object TestHelpers {
 
   case class IrohaTestAccount(accountName: String, domainName: String, privateKey: String, publicKey: String) {
+
+    import monix.eval.Task
+
     private val sha3_512 = new SHA3.Digest512()
     private val priHash = sha3_512.digest(Utils.hexToBytes(privateKey))
     val keypair = Iroha.createKeyPairFromBytes(priHash)
     assert(keypair.toHex.publicKey == publicKey)
 
-    def accountId: IrohaAccountId = {
-      val domain = IrohaDomainName(domainName)
-      val adminName = IrohaAccountName(accountName)
-      IrohaAccountId(adminName, domain)
+    def accountId: Task[Account] = {
+      Account(accountName, domainName)
     }
   }
 

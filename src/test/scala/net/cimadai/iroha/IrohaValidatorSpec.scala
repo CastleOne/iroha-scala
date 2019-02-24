@@ -1,12 +1,16 @@
 package net.cimadai.iroha
 
-import org.scalatest.WordSpec
+import utest._
 
-class IrohaValidatorSpec extends WordSpec {
-  "IrohaValidator.DomainParser" can {
-    "parse abc" in assert(IrohaValidator.DomainParser("abc").isRight, true)
-    "parse abc.xx" in assert(IrohaValidator.DomainParser("abc.xx").isRight, true)
-    "parse abc.xx.yy" in assert(IrohaValidator.DomainParser("abc.xx.yy").isRight, true)
-    "parse abc.xx.yy.zz" in assert(IrohaValidator.DomainParser("abc.xx.yy.zz").isRight, true)
+object IrohaValidatorSpec extends TestSuite {
+  class dummy extends Iroha.Validation
+  val tests = this {
+    "parse domains names"-{
+      val o = new dummy
+      "parse abc"          - { assert(o.parseDomainName("abc").isSuccess) }
+      "parse abc.xx"       - { assert(o.parseDomainName("abc.xx").isSuccess) }
+      "parse abc.xx.yy"    - { assert(o.parseDomainName("abc.xx.yy").isSuccess) }
+      "parse abc.xx.yy.zz" - { assert(o.parseDomainName("abc.xx.yy.zz").isSuccess) }
+    }
   }
 }
