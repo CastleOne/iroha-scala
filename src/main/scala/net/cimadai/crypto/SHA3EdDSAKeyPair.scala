@@ -37,7 +37,8 @@ object SHA3EdDSAKeyPair {
 
   private case class impl(publicKey: SHA3EdDSAPublicKey, privateKey: SHA3EdDSAPrivateKey) extends SHA3EdDSAKeyPair
 
-  private val engine = new EdDSAEngine(new SHA3.Digest256)
+  val digest = new SHA3.Digest256
+  val engine = new EdDSAEngine(digest)
 
   //FIXME: possibly deprecate this constructor
   @deprecated

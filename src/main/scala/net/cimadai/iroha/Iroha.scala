@@ -371,121 +371,108 @@ object Iroha {
 
 
     private def txHash(transaction: Transaction): Array[Byte] = {
-      new SHA3.Digest256().digest(transaction.payload.get.toByteArray)
+      SHA3EdDSAKeyPair.digest.digest(transaction.payload.get.toByteArray)
     }
 
-    def createTransaction(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, commands: Seq[Command]): Try[Transaction] = Try {
-      val createdTime = System.currentTimeMillis()
+    def createTransaction(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, commands: Seq[Command]): Try[Transaction] =
+      Try {
+        val createdTime = System.currentTimeMillis()
+        val maybeReducedPayload = commands.headOption
+          .map(_ => Transaction.Payload.ReducedPayload(commands, creator, createdTime, 1))
 
-      val maybeReducedPayload = commands.headOption
-        .map(_ => Transaction.Payload.ReducedPayload(commands, creator, createdTime, 1))
+        val payload = Transaction.Payload(reducedPayload = maybeReducedPayload)
 
-      val payload = Transaction.Payload(reducedPayload = maybeReducedPayload)
+        val hash = SHA3EdDSAKeyPair.digest.digest(payload.toByteArray)
 
-      val sha3_256 = new SHA3.Digest256()
-      val hash = sha3_256.digest(payload.toByteArray)
-      val sig = Signature(
-        Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes),
-        Utils.bytesToHex(creatorKeyPair.sign(hash))
-      )
-      Transaction(Some(payload), Seq(sig))
-    }
+        val sig = Signature(
+          Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes),
+          Utils.bytesToHex(creatorKeyPair.sign(hash))
+        )
+        Transaction(Some(payload), Seq(sig))
+      }
 
-    def appendRole(account: Account, role: Role): Try[Command] = Try {
-      Command(AppendRole(commands.AppendRole(account, role)))
-    }
+    def appendRole(account: Account, role: Role): Try[Command] =
+      Try { Command(AppendRole(commands.AppendRole(account, role))) }
 
-    def createRole(name: String, permissions: Seq[RolePermission]): Try[Command] = Try {
-      Command(CreateRole(commands.CreateRole(name, permissions)))
-    }
+    def createRole(name: String, permissions: Seq[RolePermission]): Try[Command] =
+      Try { Command(CreateRole(commands.CreateRole(name, permissions))) }
 
-    def grantPermission(account: Account, permissions: GrantablePermission): Try[Command] = Try {
-      Command(GrantPermission(commands.GrantPermission(account, permissions)))
-    }
+    def grantPermission(account: Account, permissions: GrantablePermission): Try[Command] =
+      Try { Command(GrantPermission(commands.GrantPermission(account, permissions))) }
 
-    def revokePermission(account: Account, permissions: GrantablePermission): Try[Command] = Try {
-      Command(RevokePermission(commands.RevokePermission(account, permissions)))
-    }
+    def revokePermission(account: Account, permissions: GrantablePermission): Try[Command] =
+      Try { Command(RevokePermission(commands.RevokePermission(account, permissions))) }
 
-    def addPeer(peer: PeerAddress): Try[Command] = Try {
-      Command(AddPeer(commands.AddPeer(Some(peer))))
-    }
+    def addPeer(peer: PeerAddress): Try[Command] =
+      Try { Command(AddPeer(commands.AddPeer(Some(peer)))) }
 
-    def addSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] = Try {
-      Command(AddSignatory(commands.AddSignatory(account, Utils.bytesToHex(publicKey.toPublicKeyBytes))))
-    }
+    def addSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] =
+      Try { Command(AddSignatory(commands.AddSignatory(account, Utils.bytesToHex(publicKey.toPublicKeyBytes)))) }
 
-    def createAccount(publicKey: SHA3EdDSAPublicKey, name: String, domain: Domain): Try[Command] = Try {
-      Command(CreateAccount(commands.CreateAccount(name, domain, Utils.bytesToHex(publicKey.toPublicKeyBytes))))
-    }
+    def createAccount(publicKey: SHA3EdDSAPublicKey, name: String, domain: Domain): Try[Command] =
+      Try { Command(CreateAccount(commands.CreateAccount(name, domain, Utils.bytesToHex(publicKey.toPublicKeyBytes)))) }
 
-    def createAsset(name: String, domain: Domain, precision: Int): Try[Command] = Try {
-      Command(CreateAsset(commands.CreateAsset(name, domain, precision)))
-    }
+    def createAsset(name: String, domain: Domain, precision: Int): Try[Command] =
+      Try { Command(CreateAsset(commands.CreateAsset(name, domain, precision))) }
 
-    def createDomain(name: String, defaultRole: Role): Try[Command] = Try {
-      Command(CreateDomain(commands.CreateDomain(name, defaultRole)))
-    }
+    def createDomain(name: String, defaultRole: Role): Try[Command] =
+      Try { Command(CreateDomain(commands.CreateDomain(name, defaultRole))) }
 
-    def removeSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] = Try {
-      Command(RemoveSignatory(commands.RemoveSignatory(account, Utils.bytesToHex(publicKey.toPublicKeyBytes))))
-    }
+    def removeSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] =
+      Try { Command(RemoveSignatory(commands.RemoveSignatory(account, Utils.bytesToHex(publicKey.toPublicKeyBytes)))) }
 
-    def setAccountQuorum(account: Account, quorum: Int): Try[Command] = Try {
-      Command(SetAccountQuorum(commands.SetAccountQuorum(account, quorum)))
-    }
+    def setAccountQuorum(account: Account, quorum: Int): Try[Command] =
+      Try { Command(SetAccountQuorum(commands.SetAccountQuorum(account, quorum))) }
 
-    def addAssetQuantity(asset: Asset, amount: Amount): Try[Command] = Try {
-      Command(AddAssetQuantity(commands.AddAssetQuantity(asset, amount)))
-    }
+    def addAssetQuantity(asset: Asset, amount: Amount): Try[Command] =
+      Try { Command(AddAssetQuantity(commands.AddAssetQuantity(asset, amount))) }
 
-    def subtractAssetQuantity(asset: Asset, amount: Amount): Try[Command] = Try {
-      Command(SubtractAssetQuantity(commands.SubtractAssetQuantity(asset, amount)))
-    }
+    def subtractAssetQuantity(asset: Asset, amount: Amount): Try[Command] =
+      Try { Command(SubtractAssetQuantity(commands.SubtractAssetQuantity(asset, amount))) }
 
     def transferAsset(srcAccount: Account, dstAccount: Account,
-                      asset: Asset, description: Description, amount: Amount): Try[Command] = Try {
-      Command(
-        TransferAsset(
-          commands.TransferAsset(
-            srcAccount,
-            dstAccount,
-            asset,
-            description,
-            amount)))
-    }
+                      asset: Asset, description: Description, amount: Amount): Try[Command] =
+      Try {
+        Command(
+          TransferAsset(
+            commands.TransferAsset(
+              srcAccount,
+              dstAccount,
+              asset,
+              description,
+              amount)))
+      }
 
-    def txStatusRequest(transaction: Transaction): Try[TxStatusRequest] = Try {
-      TxStatusRequest(Utils.bytesToHex(Iroha.CommandService.txHash(transaction)))
-    }
+    def txStatusRequest(transaction: Transaction): Try[TxStatusRequest] =
+      Try { TxStatusRequest(Utils.bytesToHex(Iroha.CommandService.txHash(transaction))) }
   }
 
   object QueryService {
 
     import scala.util.Try
 
-    private def createQuery(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, query: Query.Payload.Query): Try[Query] = Try {
-      val createdTime = System.currentTimeMillis()
+    private def createQuery(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, query: Query.Payload.Query): Try[Query] =
+      Try {
+        val createdTime = System.currentTimeMillis()
+        val payload =
+          Query.Payload(
+            meta = Some(
+              queries.QueryPayloadMeta(
+                createdTime = createdTime,
+                creatorAccountId = creator.toString,
+                queryCounter = queryCounter.getAndIncrement()
+              )),
+            query = query
+          )
 
-      val payload =
-        Query.Payload(
-          meta = Some(
-            queries.QueryPayloadMeta(
-              createdTime = createdTime,
-              creatorAccountId = creator.toString,
-              queryCounter = queryCounter.getAndIncrement()
-            )),
-          query = query
-      )
-
-      val sha3_256 = new SHA3.Digest256()
-      val hash = sha3_256.digest(payload.toByteArray)
-      val sig = Signature(
-        Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes),
-        Utils.bytesToHex(creatorKeyPair.sign(hash))
-      )
-      Query(Some(payload), Some(sig))
-    }
+        val sha3_256 = new SHA3.Digest256()
+        val hash = sha3_256.digest(payload.toByteArray)
+        val sig = Signature(
+          Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes),
+          Utils.bytesToHex(creatorKeyPair.sign(hash))
+        )
+        Query(Some(payload), Some(sig))
+      }
 
     def getAccount(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccount(queries.GetAccount(account.toString)))
