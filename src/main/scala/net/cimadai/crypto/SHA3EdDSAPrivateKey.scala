@@ -14,12 +14,12 @@ package net.cimadai.crypto
   * limitations under the License.
   */
 
-import net.i2p.crypto.eddsa.math.GroupElement
-import net.i2p.crypto.eddsa.spec.{EdDSAParameterSpec, EdDSAPrivateKeySpec}
-import java.security.{MessageDigest, NoSuchAlgorithmException}
 
 
 trait SHA3EdDSAPrivateKey {
+  import net.i2p.crypto.eddsa.EdDSAPrivateKey
+  import net.i2p.crypto.eddsa.math.GroupElement
+  private[crypto] val self: EdDSAPrivateKey
   val seed: Array[Byte]
   val h: Array[Byte]
   val a: Array[Byte]
@@ -30,9 +30,11 @@ trait SHA3EdDSAPrivateKey {
   def toPrivateKeyHex: String
 }
 object SHA3EdDSAPrivateKey {
-  import net.i2p.crypto.eddsa.EdDSAPrivateKey
-  import net.i2p.crypto.eddsa.Utils
+  import net.i2p.crypto.eddsa.math.GroupElement
+  import net.i2p.crypto.eddsa.spec.EdDSAPrivateKeySpec
+  import net.i2p.crypto.eddsa.{EdDSAPrivateKey, Utils}
   import scala.util.Try
+  import java.security.MessageDigest
 
   private case class impl(self: EdDSAPrivateKey) extends SHA3EdDSAPrivateKey {
     val seed: Array[Byte] = self.getSeed
@@ -50,65 +52,41 @@ object SHA3EdDSAPrivateKey {
   private val b = 256
 
   /**
-    * @param seed the private key
-    * @throws IllegalArgumentException if seed length is wrong or hash algorithm is unsupported
+    * Create a [SHA3EdDSAPrivateKey] from a byte array.
+    * @param seed is the private key
     */
   def apply(seed: Array[Byte]): Try[SHA3EdDSAPrivateKey] = Try {
-    if (seed.length != b/8) {
-      throw new IllegalArgumentException("seed length is wrong")
-    }
+    if (seed.length != b/8) throw new IllegalArgumentException("seed length is wrong")
 
-    try {
-      val hash = MessageDigest.getInstance("SHA-512")
+    val hash = MessageDigest.getInstance("SHA-512")
+    val h = hash.digest(seed)
+    // FIXME: are these bitflips the same for any hash function?
+    h(0) = (h(0) & 248.toByte).toByte
+    h((b/8)-1) = (h((b/8)-1) & 63.toByte).toByte
+    h((b/8)-1) = (h((b/8)-1) | 64.toByte).toByte
+    val a = java.util.Arrays.copyOfRange(h, 0, b/8)
+    val A = spec.getB.scalarMultiply(a)
 
-      // H(k)
-      val h = hash.digest(seed)
-      //edDsaPrivateKeySha3_256Spec.h = hash.digest(seed)
-
-      /*a = BigInteger.valueOf(2).pow(b-2);
-      for (int i=3;i<(b-2);i++) {
-          a = a.add(BigInteger.valueOf(2).pow(i).multiply(BigInteger.valueOf(Utils.bit(h,i))));
-      }*/
-      // Saves ~0.4ms per key when running signing tests.
-      // TODO: are these bitflips the same for any hash function?
-      h(0) = (h(0) & 248.toByte).toByte
-      h((b/8)-1) = (h((b/8)-1) & 63.toByte).toByte
-      h((b/8)-1) = (h((b/8)-1) | 64.toByte).toByte
-      val a = java.util.Arrays.copyOfRange(h, 0, b/8)
-      val A = spec.getB.scalarMultiply(a)
-
-      new impl(
-        new EdDSAPrivateKey(
-          new EdDSAPrivateKeySpec(seed, h, a, A, spec)))
-    } catch {
-      case _: NoSuchAlgorithmException =>
-        throw new IllegalArgumentException("Unsupported hash algorithm")
-    }
+    new impl(
+      new EdDSAPrivateKey(
+        new EdDSAPrivateKeySpec(seed, h, a, A, spec)))
   }
 
-  //XXX /**
-  //XXX   * Initialize directly from the hash.
-  //XXX   * getSeed() will return null if this constructor is used.
-  //XXX   *
-  //XXX   * @param spec the parameter specification for this key
-  //XXX   * @param h    the private key
-  //XXX   * @throws IllegalArgumentException if hash length is wrong
-  //XXX   * @since 0.1.1
-  //XXX   */
-  //XXX def apply(spec: EdDSAParameterSpec, h: Array[Byte]): Try[SHA3EdDSAPrivateKey] = Try {
-  //XXX   if (h.length != b/4)
-  //XXX     throw new IllegalArgumentException("hash length is wrong")
-  //XXX
-  //XXX   h(0) = (h(0) & 248.toByte).toByte
-  //XXX   h((b/8)-1) = (h((b/8)-1) & 63.toByte).toByte
-  //XXX   h((b/8)-1) = (h((b/8)-1) | 64.toByte).toByte
-  //XXX
-  //XXX   val a = java.util.Arrays.copyOfRange(h, 0, b/8)
-  //XXX   val A = spec.getB.scalarMultiply(a)
-  //XXX
-  //XXX   new impl(
-  //XXX     new EdDSAPrivateKey(
-  //XXX       new EdDSAPrivateKeySpec(null, h, a, A, spec)))
-  //XXX }
+  /**
+    * Create a [SHA3EdDSAPrivateKey] from a [String].
+    * @param seed is the private key
+    */
+  def apply(seed: String): Try[SHA3EdDSAPrivateKey] =
+    apply(Utils.hexToBytes(seed))
 
+
+  def random(): Try[SHA3EdDSAPrivateKey] =
+    makeSeed
+      .flatMap(seed => apply(seed))
+
+  private def makeSeed: Try[Array[Byte]] = Try {
+    val seed = Array.fill[Byte](32) {0x0}
+    new scala.util.Random(new java.security.SecureRandom()).nextBytes(seed)
+    seed
+  }
 }

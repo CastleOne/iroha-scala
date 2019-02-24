@@ -1,7 +1,7 @@
 package net.cimadai.crypto
 
 /**
-  * Copyright Richard Gomes -  All Rights Reserved.
+  * Copyright Daisuke SHIMADA, Richard Gomes -  All Rights Reserved.
   * https://github.com/cimadai/iroha-scala
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
@@ -14,10 +14,11 @@ package net.cimadai.crypto
   * limitations under the License.
   */
 
-import net.i2p.crypto.eddsa.math.GroupElement
-
 
 trait SHA3EdDSAPublicKey {
+  import net.i2p.crypto.eddsa.EdDSAPublicKey
+  import net.i2p.crypto.eddsa.math.GroupElement
+  private[crypto] val self: EdDSAPublicKey
   val A: GroupElement
   def toPublicKeyBytes: Array[Byte]
   def toPublicKeyHex: String
@@ -28,6 +29,7 @@ object SHA3EdDSAPublicKey {
   import scala.util.Try
 
   private case class impl(self: EdDSAPublicKey) extends SHA3EdDSAPublicKey {
+    import net.i2p.crypto.eddsa.math.GroupElement
     val A: GroupElement = self.getA
     def toPublicKeyBytes: Array[Byte] = self.getAbyte
     def toPublicKeyHex: String = Utils.bytesToHex(this.toPublicKeyBytes)
@@ -35,9 +37,20 @@ object SHA3EdDSAPublicKey {
 
   private lazy val spec = SHA3EdDSAParameter.spec
 
+  /**
+    * Create a [SHA3EdDSAPublicKey] from a byte array.
+    * @param seed is the public key
+    */
   def apply(seed: Array[Byte]): Try[SHA3EdDSAPublicKey] = Try {
     new impl(
       new EdDSAPublicKey(
         new EdDSAPublicKeySpec(seed, spec)))
   }
+
+  /**
+    * Create a [SHA3EdDSAPublicKey] from a [String].
+    * @param seed is the public key
+    */
+  def apply(seed: String): Try[SHA3EdDSAPublicKey] =
+    apply(Utils.hexToBytes(seed))
 }

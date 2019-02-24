@@ -22,34 +22,10 @@ object Iroha {
   import iroha.protocol.queries.Query
   import iroha.protocol.transaction.Transaction
   import iroha.protocol.{commands, queries}
-  import net.cimadai.crypto.{SHA3EdDSAParameter, SHA3EdDSAPrivateKey, SHA3EdDSAPublicKey}
-  import net.i2p.crypto.eddsa.spec.EdDSAPublicKeySpec
-  import net.i2p.crypto.eddsa.{EdDSAEngine, EdDSAPrivateKey, EdDSAPublicKey, Utils}
+  import net.cimadai.crypto.{SHA3EdDSAKeyPair}
+  import net.i2p.crypto.eddsa.{Utils}
   import org.spongycastle.jcajce.provider.digest.SHA3
   import java.util.concurrent.atomic.AtomicLong
-
-  private val queryCounter = new AtomicLong(1) //FIXME: code review
-
-  case class SHA3Ed25519KeyPair(privateKey: SHA3EdDSAPrivateKey, publicKey: SHA3EdDSAPublicKey) {
-    def toHex: Ed25519KeyPairHex = Ed25519KeyPairHex(privateKey.toPrivateKeyHex)
-  }
-
-  object SHA3Ed25519KeyPairHex {
-    def apply (privateKeyHex: String): SHA3Ed25519KeyPairHex = {
-      Ed25519KeyPairHex(Utils.hexToBytes(privateKeyHex))
-    }
-  }
-
-  case class Ed25519KeyPairHex(privateKeyBytes: Array[Byte]) {
-    private val sKey = new EdDSAPrivateKey(SHA3EdDSAPrivateKey(spec, privateKeyBytes))
-    private val pKey = new EdDSAPublicKey(new EdDSAPublicKeySpec(sKey.toPublicKeyBytes, spec))
-
-    val publicKey: String = sKey.toPublicKeyHex
-    val privateKey: String = sKey.toPrivateKeyHex
-
-    def toKey: Ed25519KeyPair =
-      Ed25519KeyPair(sKey, pKey)
-  }
 
   case class ToriiError(message: String, txStatus: TxStatus) extends Error(message)
 
@@ -234,13 +210,13 @@ object Iroha {
     }
 
     /** Asynchronously builds [Domain] from domain name */
-    def apply(domain: String): Task[Domain] =
+    def task(domain: String): Task[Domain] =
       Task.defer(
         Task.fromTry(
-          parse(domain)))
+          apply(domain)))
 
-    /** BLOCKING: builds [Domain] from domain name */
-    def parse(domain: String): Try[Domain] =
+    /** Builds [Domain] from domain name */
+    def apply(domain: String): Try[Domain] =
       parseDomainName(domain)
         .map(domain => impl(domain))
   }
@@ -255,13 +231,13 @@ object Iroha {
     }
 
     /** Asynchronously builds [Account] from account name and domain name */
-    def apply(account: String, domain: String): Task[Account] =
+    def task(account: String, domain: String): Task[Account] =
       Task.defer(
         Task.fromTry(
-          parse(account, domain)))
+          apply(account, domain)))
 
-    /** BLOCKING: builds [Account] from account name and domain name */
-    def parse(account: String, domain: String): Try[Account] =
+    /** Builds [Account] from account name and domain name */
+    def apply(account: String, domain: String): Try[Account] =
       for {
         _ <- parseAccountName(account)
         _ <- parseDomainName(domain)
@@ -280,13 +256,13 @@ object Iroha {
     }
 
     /** Asynchronously builds [Asset] from asset name and domain name */
-    def apply(asset: String, domain: String): Task[Asset] =
+    def task(asset: String, domain: String): Task[Asset] =
       Task.defer(
         Task.fromTry(
-          parse(asset, domain)))
+          apply(asset, domain)))
 
-    /** BLOCKING: builds [Asset] from asset name and domain name */
-    def parse(asset: String, domain: String): Try[Asset] =
+    /** Builds [Asset] from asset name and domain name */
+    def apply(asset: String, domain: String): Try[Asset] =
       for {
         _ <- parseAssetName(asset)
         _ <- parseDomainName(domain)
@@ -305,13 +281,13 @@ object Iroha {
     }
 
     /** Asynchronously builds [Role] from role name */
-    def apply(role: String): Task[Role] =
+    def task(role: String): Task[Role] =
       Task.defer(
         Task.fromTry(
-          parse(role)))
+          apply(role)))
 
-    /** BLOCKING: builds [Role] from role */
-    def parse(role: String): Try[Role] =
+    /** Builds [Role] from role */
+    def apply(role: String): Try[Role] =
       parseRoleName(role)
         .map(role => impl(role))
   }
@@ -326,13 +302,13 @@ object Iroha {
     }
 
     /** Asynchronously builds [Amount] from [BigDecimal] */
-    def apply(amount: BigDecimal): Task[Amount] =
+    def task(amount: BigDecimal): Task[Amount] =
       Task.defer(
         Task.fromTry(
-          parse(amount)))
+          apply(amount)))
 
     /** BLOCKING: builds [Amount] from [BigDecimal] */
-    def parse(amount: BigDecimal): Try[Amount] =
+    def apply(amount: BigDecimal): Try[Amount] =
       parseAmount(amount)
         .map(amount => impl(amount))
   }
@@ -347,13 +323,13 @@ object Iroha {
     }
 
     /** Asynchronously builds [Description] from [String] */
-    def apply(description: String): Task[Description] =
+    def task(description: String): Task[Description] =
       Task.defer(
         Task.fromTry(
-          parse(description)))
+          apply(description)))
 
     /** BLOCKING: builds [Description] from [String] */
-    def parse(description: String): Try[Description] =
+    def apply(description: String): Try[Description] =
       parseDescription(description)
         .map(description => impl(description))
   }
@@ -363,70 +339,42 @@ object Iroha {
   }
   object PeerAddress extends Validation {
     import monix.eval.Task
+    import net.cimadai.crypto.SHA3EdDSAPublicKey
     import scala.util.Try
 
-    private case class impl(address: String, publicKey: EdDSAPublicKey) extends PeerAddress {
+    private case class impl(address: String, publicKey: SHA3EdDSAPublicKey) extends PeerAddress {
       override def toString: String = address.toString
-      override def toPeer: Peer = iroha.protocol.primitive.Peer(address, Utils.bytesToHex(publicKey.getAbyte))
+      override def toPeer: Peer = iroha.protocol.primitive.Peer(address, Utils.bytesToHex(publicKey.toPublicKeyBytes))
     }
 
     /** Asynchronously builds [PeerAddress] from [Domain] and a [EdDSAPublicKey] */
-    def apply(address: String, publicKey: EdDSAPublicKey): Task[PeerAddress] =
+    def task(address: String, publicKey: SHA3EdDSAPublicKey): Task[PeerAddress] =
       Task.defer(
         Task.fromTry(
-          parse(address, publicKey)))
+          apply(address, publicKey)))
 
     /** BLOCKING: builds [PeerAddress] from [Domain] and a [EdDSAPublicKey] */
-    def parse(address: String, publicKey: EdDSAPublicKey): Try[PeerAddress] =
+    def apply(address: String, publicKey: SHA3EdDSAPublicKey): Try[PeerAddress] =
       parsePeerAddress(address)
         .map(address => impl(address, publicKey))
   }
 
   //--------------------------------------------------------------------------------------------------------------------
 
-  private def withEd25519[T](f: EdDSAEngine => T): T = {
-    val signature = new EdDSAEngine(new SHA3.Digest512())
-    f(signature)
-  }
-
-  def createNewKeyPair(): Try[SHA3Ed25519KeyPair] = Try {
-    val seed = Array.fill[Byte](32) {0x0}
-    new scala.util.Random(new java.security.SecureRandom()).nextBytes(seed)
-    val sKey = SHA3EdDSAPrivateKey(seed)
-    val vKey = SHA3EdDSAPublicKey(sKey.toPublicKeyBytes)
-    SHA3Ed25519KeyPair(sKey, vKey)
-  }
-
-  def createKeyPairFromHex(privateKeyHex: String): Ed25519KeyPair = {
-    Ed25519KeyPairHex(privateKeyHex).toKey
-  }
-
-  def createKeyPairFromBytes(privateKeyBytes: Array[Byte]): Ed25519KeyPair = {
-    Ed25519KeyPairHex(privateKeyBytes).toKey
-  }
-
-  def sign(keyPair: Ed25519KeyPair, message: Array[Byte]): Array[Byte] = {
-    withEd25519 { ed25519 =>
-      ed25519.initSign(keyPair.privateKey)
-      ed25519.signOneShot(message)
-    }
-  }
-
-  def verify(keyPair: Ed25519KeyPair, signature: Array[Byte], message: Array[Byte]): Boolean = {
-    withEd25519 { ed25519 =>
-      ed25519.initVerify(keyPair.publicKey)
-      ed25519.verifyOneShot(message, signature)
-    }
-  }
+  private val queryCounter = new AtomicLong(1) //FIXME: code review
 
   object CommandService {
+
     import IrohaImplicits._
+    import net.cimadai.crypto.SHA3EdDSAPublicKey
+    import scala.util.Try
+
 
     private def txHash(transaction: Transaction): Array[Byte] = {
       new SHA3.Digest256().digest(transaction.payload.get.toByteArray)
     }
 
-    def createTransaction(creator: Account, creatorKeyPair: Ed25519KeyPair, commands: Seq[Command]): Transaction = {
+    def createTransaction(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, commands: Seq[Command]): Try[Transaction] = Try {
       val createdTime = System.currentTimeMillis()
 
       val maybeReducedPayload = commands.headOption
@@ -438,52 +386,65 @@ object Iroha {
       val hash = sha3_256.digest(payload.toByteArray)
       val sig = Signature(
         Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes),
-        Utils.bytesToHex(Iroha.sign(creatorKeyPair, hash))
+        Utils.bytesToHex(creatorKeyPair.sign(hash))
       )
       Transaction(Some(payload), Seq(sig))
     }
 
-    def appendRole(account: Account, role: Role): Command =
+    def appendRole(account: Account, role: Role): Try[Command] = Try {
       Command(AppendRole(commands.AppendRole(account, role)))
+    }
 
-    def createRole(name: String, permissions: Seq[RolePermission]): Command =
+    def createRole(name: String, permissions: Seq[RolePermission]): Try[Command] = Try {
       Command(CreateRole(commands.CreateRole(name, permissions)))
+    }
 
-    def grantPermission(account: Account, permissions: GrantablePermission): Command =
+    def grantPermission(account: Account, permissions: GrantablePermission): Try[Command] = Try {
       Command(GrantPermission(commands.GrantPermission(account, permissions)))
+    }
 
-    def revokePermission(account: Account, permissions: GrantablePermission): Command =
+    def revokePermission(account: Account, permissions: GrantablePermission): Try[Command] = Try {
       Command(RevokePermission(commands.RevokePermission(account, permissions)))
+    }
 
-    def addPeer(peer: PeerAddress): Command =
+    def addPeer(peer: PeerAddress): Try[Command] = Try {
       Command(AddPeer(commands.AddPeer(Some(peer))))
+    }
 
-    def addSignatory(account: Account, publicKey: EdDSAPublicKey): Command =
+    def addSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] = Try {
       Command(AddSignatory(commands.AddSignatory(account, Utils.bytesToHex(publicKey.toPublicKeyBytes))))
+    }
 
-    def createAccount(publicKey: EdDSAPublicKey, name: String, domain: Domain): Command =
+    def createAccount(publicKey: SHA3EdDSAPublicKey, name: String, domain: Domain): Try[Command] = Try {
       Command(CreateAccount(commands.CreateAccount(name, domain, Utils.bytesToHex(publicKey.toPublicKeyBytes))))
+    }
 
-    def createAsset(name: String, domain: Domain, precision: Int): Command =
+    def createAsset(name: String, domain: Domain, precision: Int): Try[Command] = Try {
       Command(CreateAsset(commands.CreateAsset(name, domain, precision)))
+    }
 
-    def createDomain(name: String, defaultRole: Role): Command =
+    def createDomain(name: String, defaultRole: Role): Try[Command] = Try {
       Command(CreateDomain(commands.CreateDomain(name, defaultRole)))
+    }
 
-    def removeSignatory(account: Account, publicKey: EdDSAPublicKey): Command =
+    def removeSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] = Try {
       Command(RemoveSignatory(commands.RemoveSignatory(account, Utils.bytesToHex(publicKey.toPublicKeyBytes))))
+    }
 
-    def setAccountQuorum(account: Account, quorum: Int): Command =
+    def setAccountQuorum(account: Account, quorum: Int): Try[Command] = Try {
       Command(SetAccountQuorum(commands.SetAccountQuorum(account, quorum)))
+    }
 
-    def addAssetQuantity(asset: Asset, amount: Amount): Command =
+    def addAssetQuantity(asset: Asset, amount: Amount): Try[Command] = Try {
       Command(AddAssetQuantity(commands.AddAssetQuantity(asset, amount)))
+    }
 
-    def subtractAssetQuantity(asset: Asset, amount: Amount): Command =
+    def subtractAssetQuantity(asset: Asset, amount: Amount): Try[Command] = Try {
       Command(SubtractAssetQuantity(commands.SubtractAssetQuantity(asset, amount)))
+    }
 
     def transferAsset(srcAccount: Account, dstAccount: Account,
-                      asset: Asset, description: Description, amount: Amount): Command =
+                      asset: Asset, description: Description, amount: Amount): Try[Command] = Try {
       Command(
         TransferAsset(
           commands.TransferAsset(
@@ -492,14 +453,18 @@ object Iroha {
             asset,
             description,
             amount)))
+    }
 
-    def txStatusRequest(transaction: Transaction): TxStatusRequest =
+    def txStatusRequest(transaction: Transaction): Try[TxStatusRequest] = Try {
       TxStatusRequest(Utils.bytesToHex(Iroha.CommandService.txHash(transaction)))
+    }
   }
 
   object QueryService {
 
-    private def createQuery(creator: Account, creatorKeyPair: Ed25519KeyPair, query: Query.Payload.Query): Query = {
+    import scala.util.Try
+
+    private def createQuery(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, query: Query.Payload.Query): Try[Query] = Try {
       val createdTime = System.currentTimeMillis()
 
       val payload =
@@ -517,54 +482,43 @@ object Iroha {
       val hash = sha3_256.digest(payload.toByteArray)
       val sig = Signature(
         Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes),
-        Utils.bytesToHex(Iroha.sign(creatorKeyPair, hash))
+        Utils.bytesToHex(creatorKeyPair.sign(hash))
       )
       Query(Some(payload), Some(sig))
     }
 
-    def getAccount(creator: Account, creatorKeyPair: Ed25519KeyPair, account: Account): Query = {
+    def getAccount(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccount(queries.GetAccount(account.toString)))
-    }
 
-    def getSignatories(creator: Account, creatorKeyPair: Ed25519KeyPair, account: Account): Query = {
+    def getSignatories(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] = {
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetSignatories(queries.GetSignatories(account.toString)))
-    }
 
-    def getAccountTransactions(creator: Account, creatorKeyPair: Ed25519KeyPair, account: Account): Query = {
+    def getAccountTransactions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccountTransactions(queries.GetAccountTransactions(account.toString)))
-    }
 
-    def getAccountAssetTransactions(creator: Account, creatorKeyPair: Ed25519KeyPair, account: Account, asset: Asset): Query = {
+    def getAccountAssetTransactions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account, asset: Asset): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccountAssetTransactions(queries.GetAccountAssetTransactions(account.toString, asset.toString)))
-    }
 
-    def getTransactions(creator: Account, creatorKeyPair: Ed25519KeyPair, txHashes: Seq[Array[Byte]]): Query = {
+    def getTransactions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, txHashes: Seq[Array[Byte]]): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetTransactions(queries.GetTransactions(txHashes.map(Utils.bytesToHex))))
-    }
 
-    def getAccountAssets(creator: Account, creatorKeyPair: Ed25519KeyPair, account: Account): Query = {
+    def getAccountAssets(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccountAssets(queries.GetAccountAssets(account.toString)))
-    }
 
-    def getAccountDetail(creator: Account, creatorKeyPair: Ed25519KeyPair, account: Account): Query = {
+    def getAccountDetail(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccount(queries.GetAccount(account.toString)))
-    }
 
-    def getRoles(creator: Account, creatorKeyPair: Ed25519KeyPair): Query = {
+    def getRoles(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetRoles(queries.GetRoles()))
-    }
 
-    def getRolePermissions(creator: Account, creatorKeyPair: Ed25519KeyPair, role: Role): Query = {
+    def getRolePermissions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, role: Role): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetRolePermissions(queries.GetRolePermissions(role.toString)))
-    }
 
-    def getAssetInfo(creator: Account, creatorKeyPair: Ed25519KeyPair, asset: Asset): Query = {
+    def getAssetInfo(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, asset: Asset): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAssetInfo(queries.GetAssetInfo(asset.toString)))
-    }
 
-    def getPendingTransactions(creator: Account, creatorKeyPair: Ed25519KeyPair): Query = {
+    def getPendingTransactions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetPendingTransactions(queries.GetPendingTransactions()))
-    }
   }
 
   sealed trait MatchedResponse
