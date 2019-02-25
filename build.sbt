@@ -55,6 +55,7 @@ lazy val compilerSettings: Seq[Setting[_]] =
 lazy val testSettings: Seq[Setting[_]] =
   Seq(
     fork in Test := true,
+    testFrameworks += TestFramework("utest.runner.Framework")
   )
   
 lazy val publishSettings: Seq[Setting[_]] =
