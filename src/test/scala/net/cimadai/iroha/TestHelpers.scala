@@ -15,14 +15,13 @@ import scala.concurrent.duration.Duration
 import scala.util.Random
 
 object TestHelpers {
-
+/*
   case class IrohaTestAccount(accountName: String, domainName: String, privateKey: String, publicKey: String) {
 
     import monix.eval.Task
+    import net.cimadai.crypto.SHA3EdDSAKeyPair
 
-    private val sha3_512 = new SHA3.Digest512()
-    private val priHash = sha3_512.digest(Utils.hexToBytes(privateKey))
-    val keypair = Iroha.createKeyPairFromBytes(priHash)
+    val keypair: SHA3EdDSAKeyPair = SHA3EdDSAKeyPair(privateKey)
     assert(keypair.toHex.publicKey == publicKey)
 
     def accountId: Task[Account] = {
@@ -109,4 +108,5 @@ object TestHelpers {
     }
     sb.toString
   }
+  */
 }

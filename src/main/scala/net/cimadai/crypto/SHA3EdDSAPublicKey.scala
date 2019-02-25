@@ -20,7 +20,9 @@ trait SHA3EdDSAPublicKey {
   import net.i2p.crypto.eddsa.math.GroupElement
   private[crypto] val self: EdDSAPublicKey
   val A: GroupElement
+  /** Return the public key as a byte array. */
   def toPublicKeyBytes: Array[Byte]
+  /** Return the public key as an hexadecimal String. */
   def toPublicKeyHex: String
 }
 object SHA3EdDSAPublicKey {

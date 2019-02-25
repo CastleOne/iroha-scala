@@ -2,3 +2,4 @@
 //XXX addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
 //XXX addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.2")
 addSbtPlugin("ch.epfl.lamp" % "sbt-dotty" % "0.2.6")
+addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.1")

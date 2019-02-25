@@ -19,9 +19,13 @@ import net.i2p.crypto.eddsa.spec.{EdDSANamedCurveTable, EdDSAParameterSpec}
 
 
 trait SHA3EdDSAParameter {
+  /** Returns a twisted Edwards elliptic curve. */
   val curve: Curve
+  /** Return the hashing algorithm. */
   val hashAlgo: String
+  /** Return scalar operations. */
   val sc: ScalarOps
+  /** Return the base generator. */
   val B: GroupElement
 }
 object SHA3EdDSAParameter {
@@ -34,8 +38,8 @@ object SHA3EdDSAParameter {
     val B: GroupElement = self.getB
   }
 
-  lazy val spec = EdDSANamedCurveTable.getByName("Ed25519")
-  lazy val instance =
+  private[crypto] lazy val spec = EdDSANamedCurveTable.getByName("Ed25519")
+  private lazy val instance =
     new impl(
       new EdDSAParameterSpec(
         spec.getCurve, spec.getHashAlgorithm, spec.getScalarOps, spec.getB))

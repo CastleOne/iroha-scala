@@ -24,9 +24,13 @@ trait SHA3EdDSAPrivateKey {
   val h: Array[Byte]
   val a: Array[Byte]
   val A: GroupElement
+  /** Return the public key as a byte array. */
   def toPublicKeyBytes: Array[Byte]
+  /** Return the public key as an hexadecimal [String]. */
   def toPublicKeyHex: String
+  /** Return the private key as a byte array. */
   def toPrivateKeyBytes: Array[Byte]
+  /** Return the private key as an hexadecimal [String]. */
   def toPrivateKeyHex: String
 }
 object SHA3EdDSAPrivateKey {
@@ -58,7 +62,7 @@ object SHA3EdDSAPrivateKey {
   def apply(seed: Array[Byte]): Try[SHA3EdDSAPrivateKey] = Try {
     if (seed.length != b/8) throw new IllegalArgumentException("seed length is wrong")
 
-    val hash = MessageDigest.getInstance("SHA-512")
+    val hash = MessageDigest.getInstance("SHA-256")
     val h = hash.digest(seed)
     // FIXME: are these bitflips the same for any hash function?
     h(0) = (h(0) & 248.toByte).toByte
@@ -80,13 +84,13 @@ object SHA3EdDSAPrivateKey {
     apply(Utils.hexToBytes(seed))
 
 
-  def random(): Try[SHA3EdDSAPrivateKey] =
+  def random: Try[SHA3EdDSAPrivateKey] =
     makeSeed
       .flatMap(seed => apply(seed))
 
   private def makeSeed: Try[Array[Byte]] = Try {
     val seed = Array.fill[Byte](32) {0x0}
-    new scala.util.Random(new java.security.SecureRandom()).nextBytes(seed)
+    new scala.util.Random(new java.security.SecureRandom).nextBytes(seed)
     seed
   }
 }

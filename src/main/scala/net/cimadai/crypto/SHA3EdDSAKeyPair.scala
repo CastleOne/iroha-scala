@@ -15,7 +15,7 @@ package net.cimadai.crypto
   */
 
 trait SHA3EdDSAKeyPair {
-  val publicKey: SHA3EdDSAPublicKey
+  val publicKey : SHA3EdDSAPublicKey
   val privateKey: SHA3EdDSAPrivateKey
 
   import scala.util.Try
@@ -40,13 +40,27 @@ object SHA3EdDSAKeyPair {
   val digest = new SHA3.Digest256
   val engine = new EdDSAEngine(digest)
 
-  //FIXME: possibly deprecate this constructor
-  @deprecated
-  def apply(publicKey: SHA3EdDSAPublicKey, privateKey: SHA3EdDSAPrivateKey): Try[SHA3EdDSAKeyPair] = Try {
+  /** Create a [SHA3EdDSAKeyPair] from [SHA3EdDSAPublicKey] and [SHA3EdDSAPrivateKey]. */
+  def apply(publicKey: SHA3EdDSAPublicKey, privateKey: SHA3EdDSAPrivateKey): SHA3EdDSAKeyPair =
     new impl(publicKey, privateKey)
-  }
 
+  /** Create a [SHA3EdDSAKeyPair] from [SHA3EdDSAPrivateKey]. */
   def apply(privateKey: SHA3EdDSAPrivateKey): Try[SHA3EdDSAKeyPair] =
     SHA3EdDSAPublicKey(privateKey.toPublicKeyBytes)
       .map(publicKey => new impl(publicKey, privateKey))
+
+  /**
+    * Create a [SHA3EdDSAKeyPair] from a byte array.
+    * @param seed is the private key
+    */
+  def apply(seed: Array[Byte]): Try[SHA3EdDSAKeyPair] =
+    SHA3EdDSAPrivateKey(seed).flatMap { privateKey => apply(privateKey) }
+
+  /**
+    * Create a [SHA3EdDSAKeyPair] from a hexadecimal [String].
+    * @param seed is the private key
+    */
+  def apply(seed: String): Try[SHA3EdDSAKeyPair] =
+    SHA3EdDSAPrivateKey(seed).flatMap { privateKey => apply(privateKey) }
+
 }
