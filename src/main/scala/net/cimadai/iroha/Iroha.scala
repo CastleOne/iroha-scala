@@ -43,7 +43,7 @@ object Iroha {
   trait Validation {
     import scala.util.{Failure, Success, Try}
 
-    /** BLOCKING: Parse domain name according to RFC1035 and RFC5891 */
+    /** Parse domain name according to RFC1035 and RFC5891 */
     def parseDomainName(value: String): Try[String] =
       sizeDomainName(value)
         .flatMap(value => validateDomainName(value))
@@ -69,18 +69,18 @@ object Iroha {
 
     //------------
 
-    /** BLOCKING: Parse any IPv4 address or IPv6 address or domain name */
+    /** Parse any IPv4 address or IPv6 address or domain name */
     def parsePeerAddress(value: String): Try[String] = ???
 
 
-    /** BLOCKING: Parse IPv4 address */
+    /** Parse IPv4 address */
     def parseIPv4(value: String): Try[String] =
       value match {
         case regexIPv4(_*) => Success(value)
         case _             => Failure(new IllegalArgumentException(s"invalid IPv4 address name: ${value}"))
       }
 
-    /** BLOCKING: Parse IPv6 address */
+    /** Parse IPv6 address */
     def parseIPv6(value: String): Try[String] =
       value match {
         case regexIPv6(_*) => Success(value)
@@ -98,7 +98,7 @@ object Iroha {
 
     //------------
 
-    /** BLOCKING: Parse asset name */
+    /** Parse asset name */
     def parseAssetName(value: String): Try[String] =
       sizeAssetName(value)
         .flatMap(value => validateAssetName(value))
@@ -123,7 +123,7 @@ object Iroha {
 
     //------------
 
-    /** BLOCKING: Parse account name */
+    /** Parse account name */
     def parseAccountName(value: String): Try[String] =
       sizeAccountName(value)
         .flatMap(value => validateAccountName(value))
@@ -148,7 +148,7 @@ object Iroha {
 
     //----------
 
-    /** BLOCKING: Parse role name */
+    /** Parse role name */
     def parseRoleName(value: String): Try[String] =
       sizeRoleName(value)
         .flatMap(value => validateRoleName(value))
@@ -181,7 +181,7 @@ object Iroha {
 
     //----------
 
-    /** BLOCKING: Parse description */
+    /** Parse description */
     def parseDescription(value: String): Try[String] =
       if(0 < value.length && value.length <= lengthDescription)
         Success(value)
@@ -306,7 +306,7 @@ object Iroha {
     //FIXME:     Task.fromTry(
     //FIXME:       apply(amount)))
 
-    /** BLOCKING: builds [Amount] from [BigDecimal] */
+    /** builds [Amount] from [BigDecimal] */
     def apply(amount: BigDecimal): Try[Amount] =
       parseAmount(amount)
         .map(amount => impl(amount))
@@ -327,7 +327,7 @@ object Iroha {
     //FIXME:     Task.fromTry(
     //FIXME:       apply(description)))
 
-    /** BLOCKING: builds [Description] from [String] */
+    /** builds [Description] from [String] */
     def apply(description: String): Try[Description] =
       parseDescription(description)
         .map(description => impl(description))
@@ -352,7 +352,7 @@ object Iroha {
     //FIXME:     Task.fromTry(
     //FIXME:       apply(address, publicKey)))
 
-    /** BLOCKING: builds [PeerAddress] from [Domain] and a [EdDSAPublicKey] */
+    /** builds [PeerAddress] from [Domain] and a [EdDSAPublicKey] */
     def apply(address: String, publicKey: SHA3EdDSAPublicKey): Try[PeerAddress] =
       parsePeerAddress(address)
         .map(address => impl(address, publicKey))

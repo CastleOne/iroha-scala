@@ -63,4 +63,6 @@ object SHA3EdDSAKeyPair {
   def apply(seed: String): Try[SHA3EdDSAKeyPair] =
     SHA3EdDSAPrivateKey(seed).flatMap { privateKey => apply(privateKey) }
 
+  def random: Try[SHA3EdDSAKeyPair] =
+    SHA3EdDSAPrivateKey.random.flatMap { privateKey => apply(privateKey) }
 }

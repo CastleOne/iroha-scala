@@ -7,35 +7,64 @@ val versions = new {
   val dottyVersion = "0.13.0-RC1"
   val scala212Version = "2.12.8"
 
+  val acyclic      = "0.1.8"
+  val utest        = "0.6.6"
+
   val scalapbc = scalapb.compiler.Version.scalapbVersion
   val grpc = scalapb.compiler.Version.grpcJavaVersion
   val spongyCastle = "1.58.0.0"
   val i2p          = "0.2.0"
+  val ed25519      = "2.0.1"
   val monix        = "3.0.0-RC2"
-  val utest        = "0.6.6"
 }
 
-lazy val librarySettings: Seq[Setting[_]] =
+val grpcSettings: Seq[Setting[_]] =
   Seq(
     libraryDependencies ++=
       Seq(
         "io.grpc"                           %  "grpc-netty"           % versions.grpc,
         "com.thesamet.scalapb"              %% "scalapb-runtime-grpc" % versions.scalapbc,
         "com.thesamet.scalapb"              %% "scalapb-runtime-grpc" % versions.scalapbc % "protobuf",
-        "com.madgag.spongycastle"           %  "bcpg-jdk15on"         % versions.spongyCastle,
-        "net.i2p.crypto"                    %  "eddsa"                % versions.i2p,
-        "io.monix"                          %% "monix"                % versions.monix,
-        "com.lihaoyi"                       %% "utest"                % versions.utest      % "test",
+      ),
+    PB.targets in Compile :=
+      Seq(
+        scalapb.gen() -> (sourceManaged in Compile).value,
       )
   )
 
-lazy val compilerSettings: Seq[Setting[_]] =
+val cryptoSettings: Seq[Setting[_]] =
+  Seq(
+    libraryDependencies ++=
+      Seq(
+        "com.madgag.spongycastle"           %  "bcpg-jdk15on"         % versions.spongyCastle,
+        //TODO: "com.github.warchant"               % "ed25519-sha3-java"     % versions.ed25519,
+        "net.i2p.crypto"                    %  "eddsa"                % versions.i2p,
+      )
+  )
+
+val monixSettings: Seq[Setting[_]] =
+  Seq(
+    libraryDependencies += "io.monix" %% "monix" % versions.monix,
+  )
+
+val acyclicSettings: Seq[Setting[_]] =
+  Seq(
+    libraryDependencies += "com.lihaoyi" %% "acyclic" % versions.acyclic % "provided",
+    autoCompilerPlugins  := true,
+    addCompilerPlugin("com.lihaoyi" %% "acyclic" % versions.acyclic),
+    scalacOptions ++=
+      Seq(
+        "-feature",
+        //XXX "-P:acyclic:force",
+        "-Ypartial-unification"))
+
+val compilerSettings: Seq[Setting[_]] =
   Seq(
     scalaVersion := versions.scala212Version,
     crossScalaVersions := Seq(versions.dottyVersion, versions.scala212Version),
     javacOptions ++= Seq(
-      "-source", "1.8", 
-      "-target", "1.8", 
+      "-source", "1.8",
+      "-target", "1.8",
       "-encoding", "UTF-8",
     ),
     scalacOptions ++= Seq(
@@ -52,13 +81,14 @@ lazy val compilerSettings: Seq[Setting[_]] =
     ),
   )
 
-lazy val testSettings: Seq[Setting[_]] =
+val testSettings: Seq[Setting[_]] =
   Seq(
+    libraryDependencies += "com.lihaoyi" %% "utest" % versions.utest % "test",
     fork in Test := true,
     testFrameworks += TestFramework("utest.runner.Framework")
   )
-  
-lazy val publishSettings: Seq[Setting[_]] =
+
+val publishSettings: Seq[Setting[_]] =
   Seq(
     publishMavenStyle := false,
     publishArtifact in Test := false,
@@ -68,21 +98,21 @@ lazy val publishSettings: Seq[Setting[_]] =
     //TODO: bintrayOrganization in bintray := None,
   )
 
-lazy val grpcSettings: Seq[Setting[_]] =
-  Seq(
-    PB.targets in Compile :=
-      Seq(
-        scalapb.gen() -> (sourceManaged in Compile).value,
-      )
-  )
 
 
-lazy val irohaScala = (project in file("."))
+lazy val root =
+  (project in file("."))
+    .aggregate(core)
+
+
+lazy val core = (project in file("."))
   .settings(
     name := "iroha-scala",
   )
-  .settings(librarySettings: _*)
+  .settings(acyclicSettings: _*)
   .settings(compilerSettings: _*)
   .settings(testSettings: _*)
   .settings(grpcSettings: _*)
+  .settings(cryptoSettings:_*)
+  .settings(monixSettings:_*)
   .enablePlugins(ProtocPlugin)
