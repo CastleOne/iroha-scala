@@ -1,5 +1,9 @@
 package net.cimadai.crypto
 
+import java.util
+
+import net.i2p.crypto.eddsa.spec.EdDSAParameterSpec
+
 /**
   * Copyright Daisuke SHIMADA, Richard Gomes -  All Rights Reserved.
   * https://github.com/cimadai/iroha-scala
@@ -59,10 +63,10 @@ object SHA3EdDSAPrivateKey {
     * Create a [SHA3EdDSAPrivateKey] from a byte array.
     * @param seed is the private key
     */
-  def apply(seed: Array[Byte]): Try[SHA3EdDSAPrivateKey] = Try {
+  private def withSeed(seed: Array[Byte]): Try[SHA3EdDSAPrivateKey] = Try {
     if (seed.length != b/8) throw new IllegalArgumentException("seed length is wrong")
 
-    val hash = MessageDigest.getInstance("SHA-256")
+    val hash = MessageDigest.getInstance("SHA-512")
     val h = hash.digest(seed)
     // FIXME: are these bitflips the same for any hash function?
     h(0) = (h(0) & 248.toByte).toByte
@@ -77,6 +81,28 @@ object SHA3EdDSAPrivateKey {
   }
 
   /**
+    * Initialize directly from the hash.
+    *
+    * @param h    the private key
+    * @throws IllegalArgumentException if hash length is wrong
+    * @since 0.1.1
+    */
+  def apply(h: Array[Byte]): Try[SHA3EdDSAPrivateKey]  = Try {
+    if (h.length != b/4) throw new IllegalArgumentException(s"hash length is wrong ${b/4} != ${h.length}")
+
+    h(0) = (h(0) & 248.toByte).toByte
+    h((b/8)-1) = (h((b/8)-1) & 63.toByte).toByte
+    h((b/8)-1) = (h((b/8)-1) | 64.toByte).toByte
+
+    val a = util.Arrays.copyOfRange(h, 0, b/8)
+    val A = spec.getB.scalarMultiply(a)
+
+    new impl(
+      new EdDSAPrivateKey(
+        new EdDSAPrivateKeySpec(null, h, a, A, spec)))
+  }
+
+  /**
     * Create a [SHA3EdDSAPrivateKey] from a [String].
     * @param seed is the private key
     */
@@ -86,7 +112,7 @@ object SHA3EdDSAPrivateKey {
 
   def random: Try[SHA3EdDSAPrivateKey] =
     makeSeed
-      .flatMap(seed => apply(seed))
+      .flatMap(withSeed)
 
   private def makeSeed: Try[Array[Byte]] = Try {
     val seed = Array.fill[Byte](32) {0x0}
