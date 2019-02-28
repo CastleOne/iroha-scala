@@ -10,14 +10,12 @@ val versions = new {
   val acyclic      = "0.1.8"
   val utest        = "0.6.6"
 
-  val scalapbc = scalapb.compiler.Version.scalapbVersion
-  val grpc = scalapb.compiler.Version.grpcJavaVersion
-  val bouncyCastle = "1.61"
-  val spongyCastle = "1.58.0.0"
-  val i2p          = "0.3.0"
+  val scalapbc     = scalapb.compiler.Version.scalapbVersion
+  val grpc         = scalapb.compiler.Version.grpcJavaVersion
   val ed25519      = "2.0.1"
   val monix        = "3.0.0-RC2"
 }
+
 
 val grpcSettings: Seq[Setting[_]] =
   Seq(
@@ -37,10 +35,6 @@ val cryptoSettings: Seq[Setting[_]] =
   Seq(
     libraryDependencies ++=
       Seq(
-        //XXX "com.madgag.spongycastle"           %  "bcpg-jdk15on"         % versions.spongyCastle,
-        //XXX "org.bouncycastle"                  %  "bcpg-jdk15on"         % versions.bouncyCastle,
-        //XXX "net.i2p.crypto"                    %  "eddsa"                % versions.i2p,
-        //XXX "com.github.warchant"               %  "ed25519-sha3-java"    % versions.ed25519,
         "jp.co.soramitsu.crypto"            %  "ed25519" % "2.0.2-SNAPSHOT", 
       )
   )

@@ -3,6 +3,7 @@ package net.cimadai.crypto
 import utest._
 
 object CryptoSpec extends TestSuite {
+  import scala.util.{Failure, Success}
 
   val tests = this {
     "Ability to generate a random KeyPair"- {
@@ -12,11 +13,9 @@ object CryptoSpec extends TestSuite {
       } yield {
         val hexaPrivateKey = keypair.privateKey.hexa
         val hexaPublicKey  = keypair.publicKey.hexa
-
-        println("1234567890123456789012345678901234567890123456789012345678901234")
-        println(hexaPrivateKey)
-        println(hexaPublicKey)
-
+        // println("1234567890123456789012345678901234567890123456789012345678901234")
+        // println(hexaPrivateKey)
+        // println(hexaPublicKey)
         assert(hexaPrivateKey.length == 64)
         assert(hexaPublicKey.length == 64)
         assert(hexaPrivateKey.forall(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
@@ -35,11 +34,9 @@ object CryptoSpec extends TestSuite {
       } yield {
         val hexaPrivateKey = privateKey.hexa
         val hexaPublicKey  = publicKey.hexa
-
-        println("1234567890123456789012345678901234567890123456789012345678901234")
-        println(hexaPrivateKey)
-        println(hexaPublicKey)
-
+        // println("1234567890123456789012345678901234567890123456789012345678901234")
+        // println(hexaPrivateKey)
+        // println(hexaPublicKey)
         assert(hexaPrivateKey.length == 64)
         assert(hexaPublicKey.length == 64)
         assert(hexaPrivateKey.forall(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
@@ -52,20 +49,30 @@ object CryptoSpec extends TestSuite {
       }
     }
 
-    "SHA3EdDSAKeyPair should should be able to sign and verify messages"- {
+    "SHA3EdDSAKeyPair should be able to sign and verify messages"- {
       val givenPrivateKey = "FD3E07032D62B932C5CDDDAFC242AC6E4A4573DC7A00B38312BDB22C5B6F957D".toLowerCase
       val givenPublicKey  = "A447BDA11CC533D7804FDCF3D5E70832AAA795BDFA1F114F7D7992219DFF3FA1".toLowerCase
       for {
         context    <- SHA3EdDSAContext.apply
         keypair    <- SHA3EdDSAKeyPair.apply(givenPrivateKey)(context)
       } yield {
-        import scala.util.Success
-        import scala.util.Failure
-        val message = "This is a test message"
-        keypair.privateKey.sign(message) match {
-          case Success(signature) =>
-            keypair.publicKey.verify(signature, message) match {
-              case Success(verified) => assert(verified)
+        assert(keypair.privateKey.hexa == givenPrivateKey)
+        assert(keypair.publicKey.hexa  == givenPublicKey)
+        val message1 = "This is a test message"
+        keypair.privateKey.sign(message1) match {
+          case Success(signed) =>
+            keypair.publicKey.verify(signed, message1) match {
+              case Success(verified) =>
+                assert(verified)
+                val message2 = "This is another test message."
+                keypair.privateKey.sign(message2) match {
+                  case Success(signed) =>
+                    keypair.publicKey.verify(signed, message2) match {
+                      case Success(verified) => assert(verified)
+                      case Failure(t) => throw t
+                    }
+                  case Failure(t) => throw t
+                }
               case Failure(t) => throw t
             }
           case Failure(t) => throw t

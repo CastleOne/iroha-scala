@@ -1,5 +1,4 @@
 package net.cimadai.iroha
-
 /*
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import iroha.protocol.endpoint._

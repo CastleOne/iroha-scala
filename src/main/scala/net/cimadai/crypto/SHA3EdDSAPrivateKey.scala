@@ -14,7 +14,7 @@ package net.cimadai.crypto
   * limitations under the License.
   */
 
-
+import acyclic.pkg
 
 sealed trait SHA3EdDSAPrivateKey {
   import jp.co.soramitsu.crypto.ed25519.EdDSAPrivateKey
@@ -35,7 +35,7 @@ sealed trait SHA3EdDSAPrivateKey {
   /** Signs a message [String]. */
   def sign(message: String): Try[Array[Byte]]
   /** Signs a byte array. */
-  def sign(message: Array[Byte]): Try[Array[Byte]]
+  def sign(bytes: Array[Byte]): Try[Array[Byte]]
 }
 object SHA3EdDSAPrivateKey {
   import Implicits._
@@ -50,11 +50,13 @@ object SHA3EdDSAPrivateKey {
     def publicKeyHexa: String = publicKeyBytes.hexa
     def bytes: Array[Byte] = inner.geta
     def hexa: String = bytes.hexa
+
     def sign(message: String, charset: Charset): Try[Array[Byte]] = sign(message.getBytes(charset))
     def sign(message: String): Try[Array[Byte]] = sign(message.getBytes)
-    def sign(message: Array[Byte]): Try[Array[Byte]] = Try {
+    def sign(bytes: Array[Byte]): Try[Array[Byte]] = Try {
       ctx.engine.initSign(inner)
-      ctx.engine.signOneShot(message)
+      val hash = ctx.digest.digest(bytes)
+      ctx.engine.signOneShot(hash)
     }
   }
 

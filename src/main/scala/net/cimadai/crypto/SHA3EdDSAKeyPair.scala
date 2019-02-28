@@ -14,6 +14,8 @@ package net.cimadai.crypto
   * limitations under the License.
   */
 
+import acyclic.pkg
+
 sealed trait SHA3EdDSAKeyPair {
   val publicKey : SHA3EdDSAPublicKey
   val privateKey: SHA3EdDSAPrivateKey

@@ -1,5 +1,7 @@
 package net.cimadai.iroha
-/*
+
+import acyclic.pkg
+
 object IrohaImplicits {
   import net.cimadai.iroha.Iroha.{Domain, PeerAddress, Account, Asset, Role, Amount, Description}
   import iroha.protocol.primitive.Peer
@@ -13,4 +15,3 @@ object IrohaImplicits {
   implicit def formatAmount(value: Amount): String = value.toString
   implicit def formatDescription(value: Description): String = value.toString
 }
-*/

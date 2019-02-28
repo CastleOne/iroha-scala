@@ -14,6 +14,7 @@ package net.cimadai.crypto
   * limitations under the License.
   */
 
+import acyclic.pkg
 
 sealed trait SHA3EdDSAPublicKey {
   import jp.co.soramitsu.crypto.ed25519.EdDSAPublicKey
@@ -30,7 +31,7 @@ sealed trait SHA3EdDSAPublicKey {
   /** Verifies a message [String]. */
   def verify(signature: Array[Byte], message: String): Try[Boolean]
   /** Verifies a byte array. */
-  def verify(signature: Array[Byte], message: Array[Byte]): Try[Boolean]
+  def verify(signature: Array[Byte], bytes: Array[Byte]): Try[Boolean]
 }
 object SHA3EdDSAPublicKey {
   import Implicits._
@@ -45,9 +46,9 @@ object SHA3EdDSAPublicKey {
     def hexa: String = bytes.hexa
     def verify(signature: Array[Byte], message: String, charset: Charset): Try[Boolean] = verify(signature, message.getBytes(charset))
     def verify(signature: Array[Byte], message: String): Try[Boolean] = verify(signature, message.getBytes)
-    def verify(signature: Array[Byte], message: Array[Byte]): Try[Boolean] = Try {
+    def verify(signature: Array[Byte], bytes: Array[Byte]): Try[Boolean] = Try {
       ctx.engine.initVerify(inner)
-      ctx.engine.verifyOneShot(message, signature)
+      ctx.engine.verifyOneShot(bytes, signature)
     }
   }
 

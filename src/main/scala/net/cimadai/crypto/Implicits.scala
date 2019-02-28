@@ -1,5 +1,7 @@
 package net.cimadai.crypto
 
+import acyclic.pkg
+
 object Implicits {
   implicit class ImplicitByteArray(bytes: Array[Byte]) {
     /**

@@ -13,7 +13,9 @@ package net.cimadai.iroha
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
-/*
+
+import acyclic.pkg
+
 object Iroha {
   import iroha.protocol.commands.Command
   import iroha.protocol.commands.Command.Command._
@@ -23,7 +25,6 @@ object Iroha {
   import iroha.protocol.transaction.Transaction
   import iroha.protocol.{commands, queries}
   import net.cimadai.crypto.SHA3EdDSAKeyPair
-  import net.i2p.crypto.eddsa.Utils
   import java.util.concurrent.atomic.AtomicLong
 
   case class ToriiError(message: String, txStatus: TxStatus) extends Error(message)
@@ -342,7 +343,7 @@ object Iroha {
 
     private case class impl(address: String, publicKey: SHA3EdDSAPublicKey) extends PeerAddress {
       override def toString: String = address.toString
-      override def toPeer: Peer = iroha.protocol.primitive.Peer(address, Utils.bytesToHex(publicKey.toPublicKeyBytes))
+      override def toPeer: Peer = iroha.protocol.primitive.Peer(address, publicKey.hexa)
     }
 
     //FIXME: import monix.eval.Task
@@ -364,15 +365,10 @@ object Iroha {
 
   object CommandService {
 
-    import IrohaImplicits._
     import net.cimadai.crypto.SHA3EdDSAPublicKey
+    import net.cimadai.crypto.Implicits._
+    import IrohaImplicits._
     import scala.util.Try
-
-
-    private def txHash(transaction: Transaction): Array[Byte] = {
-      import net.cimadai.crypto.digest
-      digest.digest(transaction.payload.get.toByteArray)
-    }
 
     def transaction(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, commands: Seq[Command]): Try[Transaction] = {
       val createdTime = System.currentTimeMillis()
@@ -380,16 +376,11 @@ object Iroha {
         .map(_ => Transaction.Payload.ReducedPayload(commands, creator, createdTime, 1))
 
       val payload = Transaction.Payload(reducedPayload = maybeReducedPayload)
-
-      import net.cimadai.crypto.digest
-      val hash = digest.digest(payload.toByteArray)
-
-      creatorKeyPair.sign(hash).map { signed =>
-        val sig = Signature(
-          Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes),
-          Utils.bytesToHex(signed)
-        )
-        Transaction(Some(payload), Seq(sig))
+      val privateKey = creatorKeyPair.privateKey
+      val publicKey  = creatorKeyPair.publicKey
+      privateKey.sign(payload.toByteArray).map { signed =>
+        val signature = Signature(publicKey.hexa, signed.hexa)
+        Transaction(Some(payload), Seq(signature))
       }
     }
 
@@ -409,10 +400,10 @@ object Iroha {
       Command(AddPeer(commands.AddPeer(Some(peer)))) }
 
     def addSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] = Try {
-      Command(AddSignatory(commands.AddSignatory(account, Utils.bytesToHex(publicKey.toPublicKeyBytes)))) }
+      Command(AddSignatory(commands.AddSignatory(account, publicKey.hexa))) }
 
     def createAccount(publicKey: SHA3EdDSAPublicKey, name: String, domain: Domain): Try[Command] = Try {
-      Command(CreateAccount(commands.CreateAccount(name, domain, Utils.bytesToHex(publicKey.toPublicKeyBytes)))) }
+      Command(CreateAccount(commands.CreateAccount(name, domain, publicKey.hexa))) }
 
     def createAsset(name: String, domain: Domain, precision: Int): Try[Command] = Try {
       Command(CreateAsset(commands.CreateAsset(name, domain, precision))) }
@@ -421,7 +412,7 @@ object Iroha {
       Command(CreateDomain(commands.CreateDomain(name, defaultRole))) }
 
     def removeSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] = Try {
-      Command(RemoveSignatory(commands.RemoveSignatory(account, Utils.bytesToHex(publicKey.toPublicKeyBytes)))) }
+      Command(RemoveSignatory(commands.RemoveSignatory(account, publicKey.hexa))) }
 
     def setAccountQuorum(account: Account, quorum: Int): Try[Command] = Try {
       Command(SetAccountQuorum(commands.SetAccountQuorum(account, quorum))) }
@@ -444,12 +435,17 @@ object Iroha {
             amount)))
     }
 
-    def txStatusRequest(transaction: Transaction): Try[TxStatusRequest] =      Try {
-      TxStatusRequest(Utils.bytesToHex(Iroha.CommandService.txHash(transaction))) }
+    //XXX private def txHash(transaction: Transaction): Array[Byte] = {
+    //XXX   digest.digest(transaction.payload.get.toByteArray)
+    //XXX }
+
+    def txStatusRequest(transaction: Transaction): Try[TxStatusRequest] = Try {
+      TxStatusRequest(transaction.payload.get.toByteArray.hexa) }
+      //XXX TxStatusRequest(Utils.bytesToHex(Iroha.CommandService.txHash(transaction))) } //FIXME: Code review
   }
 
   object QueryService {
-
+    import net.cimadai.crypto.Implicits._
     import scala.util.Try
 
     private def createQuery(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, query: Query.Payload.Query): Try[Query] = {
@@ -460,13 +456,11 @@ object Iroha {
             queries.QueryPayloadMeta(
               createdTime = createdTime, creatorAccountId = creator.toString, queryCounter = queryCounter.getAndIncrement)),
           query = query)
-
-      import net.cimadai.crypto.digest
-      val hash = digest.digest(payload.toByteArray)
-      val publicKey = Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes)
-      creatorKeyPair.sign(hash).map { sign =>
-        val sig = Some(Signature(publicKey, Utils.bytesToHex(sign)))
-        Query(Some(payload), sig)
+      val privateKey = creatorKeyPair.privateKey
+      val publicKey  = creatorKeyPair.publicKey
+      privateKey.sign(payload.toByteArray).map { signed =>
+        val signature = Some(Signature(publicKey.hexa, signed.hexa))
+        Query(Some(payload), signature)
       }
     }
 
@@ -483,7 +477,7 @@ object Iroha {
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccountAssetTransactions(queries.GetAccountAssetTransactions(account.toString, asset.toString)))
 
     def getTransactions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, txHashes: Seq[Array[Byte]]): Try[Query] =
-      createQuery(creator, creatorKeyPair, Query.Payload.Query.GetTransactions(queries.GetTransactions(txHashes.map(Utils.bytesToHex))))
+      createQuery(creator, creatorKeyPair, Query.Payload.Query.GetTransactions(queries.GetTransactions(txHashes.map(bytes => bytes.hexa))))
 
     def getAccountAssets(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccountAssets(queries.GetAccountAssets(account.toString)))
@@ -537,4 +531,3 @@ object Iroha {
     }
   }
 }
-*/
