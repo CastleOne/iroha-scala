@@ -15,44 +15,68 @@ package net.cimadai.crypto
   */
 
 
-trait SHA3EdDSAPublicKey {
-  import net.i2p.crypto.eddsa.EdDSAPublicKey
-  import net.i2p.crypto.eddsa.math.GroupElement
-  private[crypto] val self: EdDSAPublicKey
-  val A: GroupElement
-  /** Return the public key as a byte array. */
-  def toPublicKeyBytes: Array[Byte]
-  /** Return the public key as an hexadecimal String. */
-  def toPublicKeyHex: String
+sealed trait SHA3EdDSAPublicKey {
+  import jp.co.soramitsu.crypto.ed25519.EdDSAPublicKey
+  import scala.util.Try
+  import java.nio.charset.Charset
+  val ctx: SHA3EdDSAContext
+  val inner: EdDSAPublicKey
+  /** Returns the public key as a byte array. */
+  def bytes: Array[Byte]
+  /** Returns the public key as an hexadecimal String. */
+  def hexa: String
+  /** Verifies a message [String] under a certain [Charset]. */
+  def verify(signature: Array[Byte], message: String, charset: Charset): Try[Boolean]
+  /** Verifies a message [String]. */
+  def verify(signature: Array[Byte], message: String): Try[Boolean]
+  /** Verifies a byte array. */
+  def verify(signature: Array[Byte], message: Array[Byte]): Try[Boolean]
 }
 object SHA3EdDSAPublicKey {
-  import net.i2p.crypto.eddsa.spec.EdDSAPublicKeySpec
-  import net.i2p.crypto.eddsa.{EdDSAPublicKey, Utils}
+  import Implicits._
+  import jp.co.soramitsu.crypto.ed25519.EdDSAPublicKey
   import scala.util.Try
 
-  private case class impl(self: EdDSAPublicKey) extends SHA3EdDSAPublicKey {
-    import net.i2p.crypto.eddsa.math.GroupElement
-    val A: GroupElement = self.getA
-    def toPublicKeyBytes: Array[Byte] = self.getAbyte
-    def toPublicKeyHex: String = Utils.bytesToHex(this.toPublicKeyBytes)
+  private case class impl(ctx: SHA3EdDSAContext, inner: EdDSAPublicKey) extends SHA3EdDSAPublicKey {
+    import scala.util.Try
+    import java.nio.charset.Charset
+    import Implicits._
+    def bytes: Array[Byte] = inner.getAbyte
+    def hexa: String = bytes.hexa
+    def verify(signature: Array[Byte], message: String, charset: Charset): Try[Boolean] = verify(signature, message.getBytes(charset))
+    def verify(signature: Array[Byte], message: String): Try[Boolean] = verify(signature, message.getBytes)
+    def verify(signature: Array[Byte], message: Array[Byte]): Try[Boolean] = Try {
+      ctx.engine.initVerify(inner)
+      ctx.engine.verifyOneShot(message, signature)
+    }
   }
 
-  private lazy val spec = SHA3EdDSAParameter.spec
-
   /**
-    * Create a [SHA3EdDSAPublicKey] from a byte array.
-    * @param seed is the public key
+    * Create a [SHA3EdDSAPublicKey] from a [EdDSAPublicKey].
+    * @param publicKey is the public key
     */
-  def apply(seed: Array[Byte]): Try[SHA3EdDSAPublicKey] = Try {
-    new impl(
-      new EdDSAPublicKey(
-        new EdDSAPublicKeySpec(seed, spec)))
+  def apply(publicKey: EdDSAPublicKey)(implicit ctx: SHA3EdDSAContext): Try[SHA3EdDSAPublicKey] = Try {
+    impl(ctx, publicKey)
   }
 
   /**
     * Create a [SHA3EdDSAPublicKey] from a [String].
     * @param seed is the public key
     */
-  def apply(seed: String): Try[SHA3EdDSAPublicKey] =
-    apply(Utils.hexToBytes(seed))
+  def apply(seed: String)(implicit ctx: SHA3EdDSAContext): Try[SHA3EdDSAPublicKey] =
+    apply(seed.bytes)
+
+  /**
+    * Create a [SHA3EdDSAPublicKey] from a byte array.
+    * @param seed the private key
+    */
+  def apply(seed: Array[Byte])(implicit ctx: SHA3EdDSAContext): Try[SHA3EdDSAPublicKey] = Try {
+    import jp.co.soramitsu.crypto.ed25519.spec.EdDSAPublicKeySpec
+    assume(seed.length == 32)
+    assume(seed.hexa.forall(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+    new impl(
+      ctx,
+      new EdDSAPublicKey(
+        new EdDSAPublicKeySpec(seed, ctx.spec)))
+  }
 }

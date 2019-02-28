@@ -13,7 +13,7 @@ package net.cimadai.iroha
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
-
+/*
 object Iroha {
   import iroha.protocol.commands.Command
   import iroha.protocol.commands.Command.Command._
@@ -370,7 +370,8 @@ object Iroha {
 
 
     private def txHash(transaction: Transaction): Array[Byte] = {
-      SHA3EdDSAKeyPair.digest.digest(transaction.payload.get.toByteArray)
+      import net.cimadai.crypto.digest
+      digest.digest(transaction.payload.get.toByteArray)
     }
 
     def transaction(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, commands: Seq[Command]): Try[Transaction] = {
@@ -380,7 +381,8 @@ object Iroha {
 
       val payload = Transaction.Payload(reducedPayload = maybeReducedPayload)
 
-      val hash = SHA3EdDSAKeyPair.digest.digest(payload.toByteArray)
+      import net.cimadai.crypto.digest
+      val hash = digest.digest(payload.toByteArray)
 
       creatorKeyPair.sign(hash).map { signed =>
         val sig = Signature(
@@ -459,7 +461,8 @@ object Iroha {
               createdTime = createdTime, creatorAccountId = creator.toString, queryCounter = queryCounter.getAndIncrement)),
           query = query)
 
-      val hash = SHA3EdDSAKeyPair.digest.digest(payload.toByteArray)
+      import net.cimadai.crypto.digest
+      val hash = digest.digest(payload.toByteArray)
       val publicKey = Utils.bytesToHex(creatorKeyPair.publicKey.toPublicKeyBytes)
       creatorKeyPair.sign(hash).map { sign =>
         val sig = Some(Signature(publicKey, Utils.bytesToHex(sign)))
@@ -534,3 +537,4 @@ object Iroha {
     }
   }
 }
+*/

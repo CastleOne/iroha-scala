@@ -1,5 +1,5 @@
 package net.cimadai.iroha
-
+/*
 import utest._
 
 object IrohaValidatorSpec extends TestSuite {
@@ -14,3 +14,4 @@ object IrohaValidatorSpec extends TestSuite {
     }
   }
 }
+*/

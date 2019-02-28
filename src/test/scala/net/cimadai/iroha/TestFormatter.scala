@@ -1,5 +1,5 @@
 package net.cimadai.iroha
-
+/*
 import com.google.protobuf.ByteString
 import iroha.protocol.commands.Command.{Command => Commands}
 import iroha.protocol.commands.{Command => IrohaCommand}
@@ -26,3 +26,4 @@ object TestFormatter {
     case _ => "[RES] Unknown Query Response"
   }
 }
+*/
