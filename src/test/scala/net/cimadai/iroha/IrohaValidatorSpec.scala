@@ -74,95 +74,38 @@ object IrohaValidatorSpec extends TestSuite {
       "jsmith"                            -{ checkSuccess(o.parseAccountName) }
     }
 
-
-
-
-/*
-
-    "Asset names: Should reject invalid input: "- {
+    "Role names: Should reject invalid input: "- {
       val o = new Object with Iroha.Validation
-      "abc"              -{ checkFailure(o.parseAssetName) }
+      ""                                               -{ checkFailure(o.parseRoleName) }
+      "a234567890123456789012345678901234567890123456" -{ checkFailure(o.parseRoleName) }
+      "$23456789012345678901234567890123456789012345"  -{ checkFailure(o.parseRoleName) }
+      "super.user"                                     -{ checkFailure(o.parseRoleName) }
     }
-    "Asset names: Should accept valid input: "-{
+    "Role names: Should accept valid input: "-{
       val o = new Object with Iroha.Validation
-      "abc.xx"           -{ checkSuccess(o.parseAssetName) }
-    }
-
-
-
-
-
-
-
-    "Asset names: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
-      "abc"              -{ checkFailure(o.parseAssetName) }
-    }
-    "Asset names: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
-      "abc.xx"           -{ checkSuccess(o.parseAssetName) }
+      "a23456789012345678901234567890123456789012345"  -{ checkSuccess(o.parseRoleName) }
+      "A23456789012345678901234567890123456789012345"  -{ checkSuccess(o.parseRoleName) }
+      "superuser"                                      -{ checkSuccess(o.parseRoleName) }
     }
 
-
-
-
-
-
-
-
-    "Asset names: Should reject invalid input: "- {
+    "Amount: Should reject invalid input: "- {
       val o = new Object with Iroha.Validation
-      "abc"              -{ checkFailure(o.parseAssetName) }
+      ""          -{ checkFailure(o.parseAmount) }
+      "-1.05"     -{ checkFailure(o.parseAmount) }
+      "-0.0"      -{ checkFailure(o.parseAmount) }
+      "Infinity"  -{ checkFailure(o.parseAmount) }
+      "-Infinity" -{ checkFailure(o.parseAmount) }
+      "+Infinity" -{ checkFailure(o.parseAmount) }
+      "NaN"       -{ checkFailure(o.parseAmount) }
+      "zero"      -{ checkFailure(o.parseAmount) }
     }
-    "Asset names: Should accept valid input: "-{
+    "Amount: Should accept valid input: "-{
       val o = new Object with Iroha.Validation
-      "abc.xx"           -{ checkSuccess(o.parseAssetName) }
+      "0"         -{ checkSuccess(o.parseAmount) }
+      "0.0"       -{ checkSuccess(o.parseAmount) }
+      "1"         -{ checkSuccess(o.parseAmount) }
+      "1.0"       -{ checkSuccess(o.parseAmount) }
     }
-
-
-
-
-
-
-
-    "Asset names: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
-      "abc"              -{ checkFailure(o.parseAssetName) }
-    }
-    "Asset names: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
-      "abc.xx"           -{ checkSuccess(o.parseAssetName) }
-    }
-
-
-
-
-
-
-
-    "Asset names: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
-      "abc"              -{ checkFailure(o.parseAssetName) }
-    }
-    "Asset names: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
-      "abc.xx"           -{ checkSuccess(o.parseAssetName) }
-    }
-
-
-
-
-
-
-    "Asset names: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
-      "abc"              -{ checkFailure(o.parseAssetName) }
-    }
-    "Asset names: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
-      "abc.xx"           -{ checkSuccess(o.parseAssetName) }
-    }
-*/
 
   }
 

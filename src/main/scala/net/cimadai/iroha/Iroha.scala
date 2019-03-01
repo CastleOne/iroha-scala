@@ -117,7 +117,7 @@ object Iroha {
       }
 
     /** Regular expressions which matches an asset name */
-    val regexAssetName = "^[a-zA-Z0-9]+$".r
+    val regexAssetName = "^[A-Za-z0-9]+$".r
 
     /** Maximum length for an asset name */
     val lengthAssetName = 32
@@ -173,6 +173,10 @@ object Iroha {
     val lengthRoleName = 45
 
     //----------
+
+    def parseAmount(value: String): Try[String] =
+      Try { parseAmount(BigDecimal.exact(value)) }
+        .flatMap(number => Try { number.toString })
 
     def parseAmount(value: BigDecimal): Try[BigDecimal] =
       if(value.doubleValue >= 0.0)
