@@ -64,7 +64,7 @@ object IrohaValidatorSpec extends TestSuite {
       val o = new Object with Iroha.Validation
       ""          -{ assert(isFailure(o.parseAmount)) }
       "-1.05"     -{ assert(isFailure(o.parseAmount)) }
-      // "-0.0"      -{ assert(isFailure(o.parseAmount)) } //FIXME: https://github.com/frgomes/iroha-scala/issues/3
+      "-0.0"      -{ assert(isFailure(o.parseAmount)) }
       "Infinity"  -{ assert(isFailure(o.parseAmount)) }
       "-Infinity" -{ assert(isFailure(o.parseAmount)) }
       "+Infinity" -{ assert(isFailure(o.parseAmount)) }

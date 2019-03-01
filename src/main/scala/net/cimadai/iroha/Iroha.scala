@@ -190,10 +190,16 @@ object Iroha {
 
     //----------
 
-    def parseAmount(value: String): Try[String] =
-      Try { BigDecimal.exact(value) }
+    def parseAmount(value: String): Try[String] = {
+      def makeBigDecimal(value: String) = Try { BigDecimal.exact(value) }
+      def checkNegative(value: String): Try[String] =
+        if(value.startsWith("-")) Failure(new IllegalArgumentException(value)) else Success(value)
+
+      checkNegative(value.trim)
+        .flatMap(makeBigDecimal)
         .flatMap(number => parseAmount(number))
         .flatMap(number => Success(number.toString))
+    }
 
     def parseAmount(value: BigDecimal): Try[BigDecimal] =
       if(value.doubleValue >= 0.0)
