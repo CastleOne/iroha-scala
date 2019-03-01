@@ -14,8 +14,6 @@ package net.cimadai.iroha
   * limitations under the License.
   */
 
-import acyclic.pkg
-
 object Iroha {
   import iroha.protocol.commands.Command
   import iroha.protocol.commands.Command.Command._
@@ -71,22 +69,40 @@ object Iroha {
     //------------
 
     /** Parse any IPv4 address or IPv6 address or domain name */
-    def parsePeerAddress(value: String): Try[String] = ???
-
+    def parsePeerAddress(value: String): Try[String] =
+      parseIPv4(value) orElse parseIPv6(value) orElse parseHostname(value)
 
     /** Parse IPv4 address */
-    def parseIPv4(value: String): Try[String] =
-      value match {
-        case regexIPv4(_*) => Success(value)
+    def parseIPv4(value: String): Try[String] = {
+      def checkBroadcast(address: String): Try[String] =
+        if(address == "0.0.0.0") Failure(new java.net.UnknownHostException(address)) else Success(address)
+
+      value.trim match {
+        case regexIPv4(_*) => checkBroadcast(value.trim)
         case _             => Failure(new IllegalArgumentException(s"invalid IPv4 address name: ${value}"))
       }
+    }
 
     /** Parse IPv6 address */
     def parseIPv6(value: String): Try[String] =
-      value match {
+      value.trim.toUpperCase match {
         case regexIPv6(_*) => Success(value)
         case _             => Failure(new IllegalArgumentException(s"invalid IPv4 address name: ${value}"))
       }
+
+    /** Performs a DNS query, trying to resolve hostname. */
+    def parseHostname(hostname: String): Try[String] = {
+      def checkEmpty(hostname: String): Try[String] =
+        if(hostname.length == 0) Failure(new java.net.UnknownHostException()) else Success(hostname)
+      def resolve(hostname: String): Try[String] =
+        Try { java.net.InetAddress.getByName(hostname).toString }
+      def checkBroadcast(address: String): Try[String] =
+        if(address.startsWith("/"))  Failure(new java.net.UnknownHostException(address)) else Success(address)
+
+      checkEmpty(hostname.trim)
+        .flatMap(resolve)
+        .flatMap(checkBroadcast)
+    }
 
     //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
     /** Regular expression which matches a IPv4 address */
@@ -175,8 +191,9 @@ object Iroha {
     //----------
 
     def parseAmount(value: String): Try[String] =
-      Try { parseAmount(BigDecimal.exact(value)) }
-        .flatMap(number => Try { number.toString })
+      Try { BigDecimal.exact(value) }
+        .flatMap(number => parseAmount(number))
+        .flatMap(number => Success(number.toString))
 
     def parseAmount(value: BigDecimal): Try[BigDecimal] =
       if(value.doubleValue >= 0.0)
@@ -369,9 +386,9 @@ object Iroha {
 
   object CommandService {
 
-    import net.cimadai.crypto.SHA3EdDSAPublicKey
-    import net.cimadai.crypto.Implicits._
     import IrohaImplicits._
+    import net.cimadai.crypto.Implicits._
+    import net.cimadai.crypto.SHA3EdDSAPublicKey
     import scala.util.Try
 
     def transaction(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, commands: Seq[Command]): Try[Transaction] = {
