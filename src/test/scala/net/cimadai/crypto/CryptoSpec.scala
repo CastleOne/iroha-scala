@@ -7,9 +7,9 @@ object CryptoSpec extends TestSuite {
 
   val tests = this {
     "Ability to generate a random KeyPair"- {
+      val context = Crypto.apply
       for {
-        context <- SHA3EdDSAContext.apply
-        keypair <- SHA3EdDSAKeyPair.random(context)
+        keypair <- KeyPair.random(context)
       } yield {
         val hexaPrivateKey = keypair.privateKey.hexa
         val hexaPublicKey  = keypair.publicKey.hexa
@@ -26,11 +26,11 @@ object CryptoSpec extends TestSuite {
     "SHA3EdDSAKeyPair should match a known, valid, existing key pair"- {
       val givenPrivateKey = "FD3E07032D62B932C5CDDDAFC242AC6E4A4573DC7A00B38312BDB22C5B6F957D".toLowerCase
       val givenPublicKey  = "A447BDA11CC533D7804FDCF3D5E70832AAA795BDFA1F114F7D7992219DFF3FA1".toLowerCase
+      val context = Crypto.apply
       for {
-        context    <- SHA3EdDSAContext.apply
-        keypair    <- SHA3EdDSAKeyPair   .apply(givenPrivateKey)(context)
-        privateKey <- SHA3EdDSAPrivateKey.apply(givenPrivateKey)(context)
-        publicKey  <- SHA3EdDSAPublicKey .apply(givenPublicKey)(context)
+        keypair    <- KeyPair   .apply(givenPrivateKey)(context)
+        privateKey <- PrivateKey.apply(givenPrivateKey)(context)
+        publicKey  <- PublicKey .apply(givenPublicKey)(context)
       } yield {
         val hexaPrivateKey = privateKey.hexa
         val hexaPublicKey  = publicKey.hexa
@@ -52,9 +52,9 @@ object CryptoSpec extends TestSuite {
     "SHA3EdDSAKeyPair should be able to sign and verify messages"- {
       val givenPrivateKey = "FD3E07032D62B932C5CDDDAFC242AC6E4A4573DC7A00B38312BDB22C5B6F957D".toLowerCase
       val givenPublicKey  = "A447BDA11CC533D7804FDCF3D5E70832AAA795BDFA1F114F7D7992219DFF3FA1".toLowerCase
+      val context = Crypto.apply
       for {
-        context    <- SHA3EdDSAContext.apply
-        keypair    <- SHA3EdDSAKeyPair.apply(givenPrivateKey)(context)
+        keypair    <- KeyPair.apply(givenPrivateKey)(context)
       } yield {
         assert(keypair.privateKey.hexa == givenPrivateKey)
         assert(keypair.publicKey.hexa  == givenPublicKey)

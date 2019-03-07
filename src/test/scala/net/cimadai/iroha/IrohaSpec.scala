@@ -1,4 +1,98 @@
 package net.cimadai.iroha
+
+
+import utest._
+
+object IrohaSpec extends TestSuite with TestHelpers {
+  import monix.eval.Task
+  import scala.util.{Try,Success,Failure}
+
+  val tests = this {
+    val host = "localhost"
+    val port = 50051
+
+    import io.grpc.{ManagedChannel, ManagedChannelBuilder}
+    import iroha.protocol.endpoint.{CommandService_v1Grpc, QueryService_v1Grpc}
+    implicit val channel: ManagedChannel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build
+
+
+    "create a new account" - {
+      import iroha.protocol.endpoint.ToriiResponse
+      import net.cimadai.crypto.{Crypto, KeyPair}
+      import net.cimadai.iroha.Iroha.{Account, CmdStub, Domain, QryStub}
+
+      val domainName = "example.com"
+      val adminAccountName = "admin"
+
+      implicit val cmd: CmdStub = CommandService_v1Grpc.stub(channel)
+      implicit val qry: QryStub = QueryService_v1Grpc.stub(channel)
+
+      val keypair = KeyPair.random(Crypto.apply)
+
+      val admin = Account(adminAccountName, domainName)
+      val domain = Domain(domainName)
+      val user = Account(createRandomName(10), domainName)
+
+      val cb = Iroha.CommandBuilder
+      val tb = Iroha.TransactionBuilder
+      val api = Iroha.CommandService
+
+      val tryTask: Try[Task[ToriiResponse]] =
+        for {
+          a <- admin; u <- user; d <- domain; kp <- keypair
+          crypto <- Crypto.apply
+          createAccount <- cb.createAccount(u, d, kp.publicKey)
+          tx <- tb.transaction(a, kp, createAccount)
+          //TODO: checkTransactionCommit(tx)
+        } yield {
+          api.send(tx)(cmd, crypto)
+        }
+
+      tryTaskNow[ToriiResponse](tryTask)
+    }
+  }
+
+
+  def tryTaskNow[A](tryTask: Try[Task[A]]): Unit =
+    tryTask match {
+      case Success(task) =>
+        import monix.execution.Scheduler
+        implicit val sc: Scheduler = Scheduler.global
+        task.coeval.foreach { either =>
+          either match {
+            case Left(future)  => throw new RuntimeException("Future must be asynchronous")
+            case Right(result) => println(s"Result: ${result}")
+          }
+        }
+      case Failure(t) => throw t
+    }
+}
+
+      /*
+      val domain = IrohaDomainName(context.testDomain)
+      val user1Name = IrohaAccountName(createRandomName(10))
+      val user1Id = IrohaAccountId(user1Name, domain)
+
+      val user1keyPair = Iroha.createNewKeyPair()
+      val createAccount = Iroha.CommandService.createAccount(user1keyPair.publicKey, user1Name, domain)
+      val transaction = Iroha.CommandService.createTransaction(context.adminAccount.accountId, context.adminAccount.keypair, Seq(createAccount))
+      val accountQuery = Iroha.QueryService.getAccount(context.adminAccount.accountId, context.adminAccount.keypair, user1Id)
+      println(TestFormatter.command(createAccount))
+      for {
+          sent <- sendTransaction(transaction)
+          committed <- Future(sent).collect({ case true => awaitUntilTransactionCommitted(transaction) })
+          query <- Future(committed).collect({ case true => sendQuery(accountQuery) })
+          account = Some(query).collect({ case Iroha.QueryResponse(AccountResponse(x)) => x }).flatMap(_.account)
+        } yield {
+          println(TestFormatter.queryResponse(query))
+          assert(sent, true)
+          assert(committed, true)
+          assert(account.map(_.accountId.split("@").head).contains(user1Name.value))
+          assert(account.map(_.domainId).contains(domain.value))
+        }
+*/
+
+
 /*
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import iroha.protocol.endpoint._
@@ -362,5 +456,5 @@ class IrohaSpec extends AsyncWordSpec {
 //      assert(Await.result(r, Duration.Inf))
 //    }
 //  }
-}
+//}
 */

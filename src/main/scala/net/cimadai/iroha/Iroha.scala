@@ -17,13 +17,16 @@ package net.cimadai.iroha
 object Iroha {
   import iroha.protocol.commands.Command
   import iroha.protocol.commands.Command.Command._
-  import iroha.protocol.endpoint.{ToriiResponse, TxStatus, TxStatusRequest}
+  import iroha.protocol.endpoint.{CommandService_v1Grpc, QueryService_v1Grpc, ToriiResponse, TxStatus, TxStatusRequest}
   import iroha.protocol.primitive._
   import iroha.protocol.queries.Query
   import iroha.protocol.transaction.Transaction
   import iroha.protocol.{commands, queries}
-  import net.cimadai.crypto.SHA3EdDSAKeyPair
+  import net.cimadai.crypto.KeyPair
   import java.util.concurrent.atomic.AtomicLong
+
+  type CmdStub = CommandService_v1Grpc.CommandService_v1Stub
+  type QryStub = QueryService_v1Grpc.QueryService_v1Stub
 
   case class ToriiError(message: String, txStatus: TxStatus) extends Error(message)
 
@@ -60,6 +63,7 @@ object Iroha {
       }
 
     //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
+    //FIXME: https://github.com/frgomes/iroha-scala/issues/5
     /** Regular expression which matches a domain name */
     val regexDomainName = "^(xn--)?((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}$".r
 
@@ -74,11 +78,11 @@ object Iroha {
 
     /** Parse IPv4 address */
     def parseIPv4(value: String): Try[String] = {
-      def checkBroadcast(address: String): Try[String] =
+      def checkInvalid(address: String): Try[String] =
         if(address == "0.0.0.0") Failure(new java.net.UnknownHostException(address)) else Success(address)
 
       value.trim match {
-        case regexIPv4(_*) => checkBroadcast(value.trim)
+        case regexIPv4(_*) => checkInvalid(value.trim)
         case _             => Failure(new IllegalArgumentException(s"invalid IPv4 address name: ${value}"))
       }
     }
@@ -96,12 +100,12 @@ object Iroha {
         if(hostname.length == 0) Failure(new java.net.UnknownHostException()) else Success(hostname)
       def resolve(hostname: String): Try[String] =
         Try { java.net.InetAddress.getByName(hostname).toString }
-      def checkBroadcast(address: String): Try[String] =
+      def checkInvalid(address: String): Try[String] =
         if(address.startsWith("/"))  Failure(new java.net.UnknownHostException(address)) else Success(address)
 
       checkEmpty(hostname.trim)
         .flatMap(resolve)
-        .flatMap(checkBroadcast)
+        .flatMap(checkInvalid)
     }
 
     //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
@@ -365,10 +369,10 @@ object Iroha {
     def toPeer: Peer
   }
   object PeerAddress extends Validation {
-    import net.cimadai.crypto.SHA3EdDSAPublicKey
+    import net.cimadai.crypto.PublicKey
     import scala.util.Try
 
-    private case class impl(address: String, publicKey: SHA3EdDSAPublicKey) extends PeerAddress {
+    private case class impl(address: String, publicKey: PublicKey) extends PeerAddress {
       override def toString: String = address.toString
       override def toPeer: Peer = iroha.protocol.primitive.Peer(address, publicKey.hexa)
     }
@@ -381,7 +385,7 @@ object Iroha {
     //FIXME:       apply(address, publicKey)))
 
     /** builds [PeerAddress] from [Domain] and a [EdDSAPublicKey] */
-    def apply(address: String, publicKey: SHA3EdDSAPublicKey): Try[PeerAddress] =
+    def apply(address: String, publicKey: PublicKey): Try[PeerAddress] =
       parsePeerAddress(address)
         .map(address => impl(address, publicKey))
   }
@@ -390,26 +394,11 @@ object Iroha {
 
   private val queryCounter = new AtomicLong(1) //FIXME: code review
 
-  object CommandService {
-
+  object CommandBuilder {
     import IrohaImplicits._
     import net.cimadai.crypto.Implicits._
-    import net.cimadai.crypto.SHA3EdDSAPublicKey
+    import net.cimadai.crypto.PublicKey
     import scala.util.Try
-
-    def transaction(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, commands: Seq[Command]): Try[Transaction] = {
-      val createdTime = System.currentTimeMillis()
-      val maybeReducedPayload = commands.headOption
-        .map(_ => Transaction.Payload.ReducedPayload(commands, creator, createdTime, 1))
-
-      val payload = Transaction.Payload(reducedPayload = maybeReducedPayload)
-      val privateKey = creatorKeyPair.privateKey
-      val publicKey  = creatorKeyPair.publicKey
-      privateKey.sign(payload.toByteArray).map { signed =>
-        val signature = Signature(publicKey.hexa, signed.hexa)
-        Transaction(Some(payload), Seq(signature))
-      }
-    }
 
     def appendRole(account: Account, role: Role): Try[Command] = Try {
       Command(AppendRole(commands.AppendRole(account, role))) }
@@ -426,10 +415,10 @@ object Iroha {
     def addPeer(peer: PeerAddress): Try[Command] = Try {
       Command(AddPeer(commands.AddPeer(Some(peer)))) }
 
-    def addSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] = Try {
+    def addSignatory(account: Account, publicKey: PublicKey): Try[Command] = Try {
       Command(AddSignatory(commands.AddSignatory(account, publicKey.hexa))) }
 
-    def createAccount(publicKey: SHA3EdDSAPublicKey, name: String, domain: Domain): Try[Command] = Try {
+    def createAccount(name: Account, domain: Domain, publicKey: PublicKey): Try[Command] = Try {
       Command(CreateAccount(commands.CreateAccount(name, domain, publicKey.hexa))) }
 
     def createAsset(name: String, domain: Domain, precision: Int): Try[Command] = Try {
@@ -438,7 +427,7 @@ object Iroha {
     def createDomain(name: String, defaultRole: Role): Try[Command] = Try {
       Command(CreateDomain(commands.CreateDomain(name, defaultRole))) }
 
-    def removeSignatory(account: Account, publicKey: SHA3EdDSAPublicKey): Try[Command] = Try {
+    def removeSignatory(account: Account, publicKey: PublicKey): Try[Command] = Try {
       Command(RemoveSignatory(commands.RemoveSignatory(account, publicKey.hexa))) }
 
     def setAccountQuorum(account: Account, quorum: Int): Try[Command] = Try {
@@ -471,11 +460,100 @@ object Iroha {
       //XXX TxStatusRequest(Utils.bytesToHex(Iroha.CommandService.txHash(transaction))) } //FIXME: Code review
   }
 
+  object TransactionBuilder {
+    import IrohaImplicits._
+    import net.cimadai.crypto.Implicits._
+    import scala.util.Try
+
+    def transaction(creator: Account, creatorKeyPair: KeyPair, commands: Command*): Try[Transaction] = {
+      val createdTime = System.currentTimeMillis()
+      val maybeReducedPayload = commands.headOption
+        .map(_ => Transaction.Payload.ReducedPayload(commands, creator, createdTime, 1))
+
+      val payload = Transaction.Payload(reducedPayload = maybeReducedPayload)
+      val privateKey = creatorKeyPair.privateKey
+      val publicKey = creatorKeyPair.publicKey
+      privateKey.sign(payload.toByteArray).map { signed =>
+        val signature = Signature(publicKey.hexa, signed.hexa)
+        Transaction(Some(payload), Seq(signature))
+      }
+    }
+  }
+
+
+  object CommandService {
+    import com.google.protobuf.empty.Empty
+    import monix.eval.Task
+    import monix.execution.Scheduler
+    import net.cimadai.crypto.Crypto
+    import scala.util.control.NonFatal
+    import net.cimadai.crypto.Implicits._
+    import scala.concurrent.Future
+
+    def send(tx: Transaction)(implicit stub: CmdStub, crypto: Crypto): Task[ToriiResponse] =
+      request(tx)
+        .redeemWith(
+          t => Task.raiseError[ToriiResponse](t),
+          _ => status(tx))
+
+    def request(tx: Transaction)(implicit stub: CmdStub): Task[Empty] =
+      Task.deferFutureAction { implicit scheduler: Scheduler =>
+        try {
+          stub.torii(tx)
+        } catch {
+          case NonFatal(t) => Future.failed[Empty](t)
+        }
+      }
+
+    def status(tx: Transaction)(implicit stub: CmdStub, crypto: Crypto): Task[ToriiResponse] =
+      Task.deferFutureAction { implicit scheduler: Scheduler =>
+        val bytes: Array[Byte] = tx.getPayload.toByteArray
+        val hash: String =  crypto.digest.digest(bytes).hexa
+        val request = new TxStatusRequest(hash)
+        try {
+          stub.status(request)
+        } catch {
+          case NonFatal(t) => Future.failed[ToriiResponse](t)
+        }
+      }
+  }
+
+
+/*
+  class CommandService_v1Stub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT) extends _root_.io.grpc.stub.AbstractStub[CommandService_v1Stub](channel, options) with CommandService_v1 {
+
+    override def torii(request: iroha.protocol.transaction.Transaction): scala.concurrent.Future[com.google.protobuf.empty.Empty] = {
+      _root_.scalapb.grpc.ClientCalls.asyncUnaryCall(channel, METHOD_TORII, options, request)
+    }
+
+    override def listTorii(request: iroha.protocol.endpoint.TxList): scala.concurrent.Future[com.google.protobuf.empty.Empty] = {
+      _root_.scalapb.grpc.ClientCalls.asyncUnaryCall(channel, METHOD_LIST_TORII, options, request)
+    }
+
+    override def status(request: iroha.protocol.endpoint.TxStatusRequest): scala.concurrent.Future[iroha.protocol.endpoint.ToriiResponse] = {
+      _root_.scalapb.grpc.ClientCalls.asyncUnaryCall(channel, METHOD_STATUS, options, request)
+    }
+
+    override def statusStream(request: iroha.protocol.endpoint.TxStatusRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[iroha.protocol.endpoint.ToriiResponse]): Unit = {
+      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(channel, METHOD_STATUS_STREAM, options, request, responseObserver)
+    }
+
+    override def build(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): CommandService_v1Stub = new CommandService_v1Stub(channel, options)
+  }
+*/
+
+
+
+
+
+
+
+
   object QueryService {
     import net.cimadai.crypto.Implicits._
     import scala.util.Try
 
-    private def createQuery(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, query: Query.Payload.Query): Try[Query] = {
+    private def createQuery(creator: Account, creatorKeyPair: KeyPair, query: Query.Payload.Query): Try[Query] = {
       val createdTime = System.currentTimeMillis()
       val payload =
         Query.Payload(
@@ -491,37 +569,37 @@ object Iroha {
       }
     }
 
-    def getAccount(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
+    def getAccount(creator: Account, creatorKeyPair: KeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccount(queries.GetAccount(account.toString)))
 
-    def getSignatories(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
+    def getSignatories(creator: Account, creatorKeyPair: KeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetSignatories(queries.GetSignatories(account.toString)))
 
-    def getAccountTransactions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
+    def getAccountTransactions(creator: Account, creatorKeyPair: KeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccountTransactions(queries.GetAccountTransactions(account.toString)))
 
-    def getAccountAssetTransactions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account, asset: Asset): Try[Query] =
+    def getAccountAssetTransactions(creator: Account, creatorKeyPair: KeyPair, account: Account, asset: Asset): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccountAssetTransactions(queries.GetAccountAssetTransactions(account.toString, asset.toString)))
 
-    def getTransactions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, txHashes: Seq[Array[Byte]]): Try[Query] =
+    def getTransactions(creator: Account, creatorKeyPair: KeyPair, txHashes: Seq[Array[Byte]]): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetTransactions(queries.GetTransactions(txHashes.map(bytes => bytes.hexa))))
 
-    def getAccountAssets(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
+    def getAccountAssets(creator: Account, creatorKeyPair: KeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccountAssets(queries.GetAccountAssets(account.toString)))
 
-    def getAccountDetail(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, account: Account): Try[Query] =
+    def getAccountDetail(creator: Account, creatorKeyPair: KeyPair, account: Account): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAccount(queries.GetAccount(account.toString)))
 
-    def getRoles(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair): Try[Query] =
+    def getRoles(creator: Account, creatorKeyPair: KeyPair): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetRoles(queries.GetRoles()))
 
-    def getRolePermissions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, role: Role): Try[Query] =
+    def getRolePermissions(creator: Account, creatorKeyPair: KeyPair, role: Role): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetRolePermissions(queries.GetRolePermissions(role.toString)))
 
-    def getAssetInfo(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair, asset: Asset): Try[Query] =
+    def getAssetInfo(creator: Account, creatorKeyPair: KeyPair, asset: Asset): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetAssetInfo(queries.GetAssetInfo(asset.toString)))
 
-    def getPendingTransactions(creator: Account, creatorKeyPair: SHA3EdDSAKeyPair): Try[Query] =
+    def getPendingTransactions(creator: Account, creatorKeyPair: KeyPair): Try[Query] =
       createQuery(creator, creatorKeyPair, Query.Payload.Query.GetPendingTransactions(queries.GetPendingTransactions()))
   }
 

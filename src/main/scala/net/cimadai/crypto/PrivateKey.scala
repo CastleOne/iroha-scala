@@ -16,11 +16,11 @@ package net.cimadai.crypto
 
 import acyclic.pkg
 
-sealed trait SHA3EdDSAPrivateKey {
+sealed trait PrivateKey {
   import jp.co.soramitsu.crypto.ed25519.EdDSAPrivateKey
   import scala.util.Try
   import java.nio.charset.Charset
-  val ctx: SHA3EdDSAContext
+  val ctx: Crypto
   val inner: EdDSAPrivateKey
   /** Returns the public key as a byte array. */
   def publicKeyBytes: Array[Byte]
@@ -37,12 +37,13 @@ sealed trait SHA3EdDSAPrivateKey {
   /** Signs a byte array. */
   def sign(bytes: Array[Byte]): Try[Array[Byte]]
 }
-object SHA3EdDSAPrivateKey {
+object PrivateKey {
   import Implicits._
   import jp.co.soramitsu.crypto.ed25519.EdDSAPrivateKey
+  import jp.co.soramitsu.crypto.ed25519.spec.EdDSAPrivateKeySpec
   import scala.util.Try
 
-  private case class impl(ctx: SHA3EdDSAContext, inner: EdDSAPrivateKey) extends SHA3EdDSAPrivateKey {
+  private case class impl(ctx: Crypto, inner: EdDSAPrivateKey) extends PrivateKey {
     import scala.util.Try
     import java.nio.charset.Charset
 
@@ -64,28 +65,23 @@ object SHA3EdDSAPrivateKey {
     * Create a [SHA3EdDSAPrivateKey] from a [EdDSAPrivateKey].
     * @param seed is the private key
     */
-  def apply(privateKey: EdDSAPrivateKey)(implicit ctx: SHA3EdDSAContext): Try[SHA3EdDSAPrivateKey] = Try {
-    impl(ctx, privateKey)
-  }
+  def apply(privateKey: EdDSAPrivateKey)(implicit context: Try[Crypto]): Try[PrivateKey] =
+    context.map(ctx => impl(ctx, privateKey))
 
   /**
     * Create a [SHA3EdDSAPrivateKey] from a [String].
     * @param seed is the private key
     */
-  def apply(seed: String)(implicit ctx: SHA3EdDSAContext): Try[SHA3EdDSAPrivateKey] =
+  def apply(seed: String)(implicit context: Try[Crypto]): Try[PrivateKey] =
     apply(seed.bytes)
 
   /**
     * Create a [SHA3EdDSAPrivateKey] from a byte array.
     * @param seed the private key
     */
-  def apply(seed: Array[Byte])(implicit ctx: SHA3EdDSAContext): Try[SHA3EdDSAPrivateKey] = Try {
-    import jp.co.soramitsu.crypto.ed25519.spec.EdDSAPrivateKeySpec
-    assume(seed.length == 32)
-    assume(seed.hexa.forall(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
-    new impl(
-      ctx,
-      new EdDSAPrivateKey(
-        new EdDSAPrivateKeySpec(seed, ctx.spec)))
-  }
+  def apply(seed: Array[Byte])(implicit context: Try[Crypto]): Try[PrivateKey] =
+    context.map(ctx =>
+      impl(ctx,
+        new EdDSAPrivateKey(
+          new EdDSAPrivateKeySpec(seed, ctx.spec))))
 }

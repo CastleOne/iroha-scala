@@ -13,10 +13,12 @@ import org.spongycastle.jcajce.provider.digest.SHA3
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
-import scala.util.Random
 */
 
-object TestHelpers {
+import scala.util.Random
+
+trait TestHelpers {
+
 /*
   case class IrohaTestAccount(accountName: String, domainName: String, privateKey: String, publicKey: String) {
 
@@ -96,6 +98,7 @@ object TestHelpers {
   def assertTxFutures(futures: Iterable[Future[Boolean]]): Unit = {
     futures.foreach(f => assert(Await.result(f, Duration.Inf), true))
   }
+  */
 
   def createRandomName(length: Int, prefix: String = "z"): String = {
     prefix + Random.alphanumeric.take(length - 1).mkString.toLowerCase
@@ -103,12 +106,7 @@ object TestHelpers {
 
   def createRandomAlphaName(length: Int): String = {
     val rand = new scala.util.Random(System.nanoTime)
-    val sb = new StringBuilder(length)
     val ab = "abcdefghijklmnopqrstuvwxyz"
-    for (i <- 0 until length) {
-      sb.append(ab(rand.nextInt(ab.length)))
-    }
-    sb.toString
+    ("" /: (0 until length)) { (acc, _) => acc + ab(rand.nextInt(ab.length)) }
   }
-  */
 }

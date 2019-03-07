@@ -7,11 +7,13 @@ object IrohaValidatorSpec extends TestSuite {
 
   val tests = this {
     "Domain names: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "abc"              -{ assert(isFailure(o.parseDomainName)) }
     }
     "Domain names: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "abc.xx"           -{ assert(isSuccess(o.parseDomainName)) }
       "abc.xx.yy"        -{ assert(isSuccess(o.parseDomainName)) }
       "abc.xx.yy.zz"     -{ assert(isSuccess(o.parseDomainName)) }
@@ -19,21 +21,24 @@ object IrohaValidatorSpec extends TestSuite {
     }
 
     "Asset names: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       ""                                  -{ assert(isFailure(o.parseAssetName)) }
       "a23456789012345678901234567890123" -{ assert(isFailure(o.parseAssetName)) }
       "$2345678901234567890123456789012"  -{ assert(isFailure(o.parseAssetName)) }
       "silver.coin"                       -{ assert(isFailure(o.parseAssetName)) }
     }
     "Asset names: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "a2345678901234567890123456789012"  -{ assert(isSuccess(o.parseAssetName)) }
       "A2345678901234567890123456789012"  -{ assert(isSuccess(o.parseAssetName)) }
       "coin"                              -{ assert(isSuccess(o.parseAssetName)) }
     }
 
     "Account names: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       ""                                  -{ assert(isFailure(o.parseAccountName)) }
       "a23456789012345678901234567890123" -{ assert(isFailure(o.parseAccountName)) }
       "A2345678901234567890123456789012"  -{ assert(isFailure(o.parseAccountName)) }
@@ -41,27 +46,31 @@ object IrohaValidatorSpec extends TestSuite {
       "john.smith"                        -{ assert(isFailure(o.parseAccountName)) }
     }
     "Account names: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "a2345678901234567890123456789012"  -{ assert(isSuccess(o.parseAccountName)) }
       "jsmith"                            -{ assert(isSuccess(o.parseAccountName)) }
     }
 
     "Role names: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       ""                                               -{ assert(isFailure(o.parseRoleName)) }
       "a234567890123456789012345678901234567890123456" -{ assert(isFailure(o.parseRoleName)) }
       "$23456789012345678901234567890123456789012345"  -{ assert(isFailure(o.parseRoleName)) }
       "super.user"                                     -{ assert(isFailure(o.parseRoleName)) }
     }
     "Role names: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "a23456789012345678901234567890123456789012345"  -{ assert(isSuccess(o.parseRoleName)) }
       "A23456789012345678901234567890123456789012345"  -{ assert(isSuccess(o.parseRoleName)) }
       "superuser"                                      -{ assert(isSuccess(o.parseRoleName)) }
     }
 
     "Amount: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       ""          -{ assert(isFailure(o.parseAmount)) }
       "-1.05"     -{ assert(isFailure(o.parseAmount)) }
       "-0.0"      -{ assert(isFailure(o.parseAmount)) }
@@ -72,7 +81,8 @@ object IrohaValidatorSpec extends TestSuite {
       "zero"      -{ assert(isFailure(o.parseAmount)) }
     }
     "Amount: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "0"         -{ assert(isSuccess(o.parseAmount)) }
       "0.0"       -{ assert(isSuccess(o.parseAmount)) }
       "1"         -{ assert(isSuccess(o.parseAmount)) }
@@ -80,18 +90,21 @@ object IrohaValidatorSpec extends TestSuite {
     }
 
     "Description: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       ""                                                                  -{ assert(isFailure(o.parseDescription)) }
       "12345678901234567890123456789012345678901234567890123456789012345" -{ assert(isFailure(o.parseDescription)) }
     }
     "Description: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "1234567890123456789012345678901234567890123456789012345678901234"  -{ assert(isSuccess(o.parseDescription)) }
       "It can be any text, given that it is limited to 64 characters. ="  -{ assert(isSuccess(o.parseDescription)) }
     }
 
     "IPv4 address: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       ""                                    -{ assert(isFailure(o.parseIPv4)) }
       "0"                                   -{ assert(isFailure(o.parseIPv4)) }
       "0.0"                                 -{ assert(isFailure(o.parseIPv4)) }
@@ -99,7 +112,8 @@ object IrohaValidatorSpec extends TestSuite {
       "0.0.0.0"                             -{ assert(isFailure(o.parseIPv4)) }
     }
     "IPv4 address: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "127.0.0.1"                           -{ assert(isSuccess(o.parseIPv4)) }
       "192.168.0.1"                         -{ assert(isSuccess(o.parseIPv4)) }
       "172.10.20.30"                        -{ assert(isSuccess(o.parseIPv4)) }
@@ -107,13 +121,15 @@ object IrohaValidatorSpec extends TestSuite {
     }
 
     "IPv6 address: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       ""                                    -{ assert(isFailure(o.parseIPv6)) }
       "::"                                  -{ assert(isSuccess(o.parseIPv6)) }
       "::0"                                 -{ assert(isSuccess(o.parseIPv6)) }
     }
     "IPv6 address: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "::1"                                 -{ assert(isSuccess(o.parseIPv6)) }
       "fdfa:ffee:1a8b::1"                   -{ assert(isSuccess(o.parseIPv6)) }
       "2001:470:1f1c:b61::2"                -{ assert(isSuccess(o.parseIPv6)) }
@@ -121,7 +137,8 @@ object IrohaValidatorSpec extends TestSuite {
     }
 
     "Hostname address: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       ""                                    -{ assert(isFailure(o.parseHostname)) }
       "0"                                   -{ assert(isFailure(o.parseHostname)) }
       "0.0"                                 -{ assert(isFailure(o.parseHostname)) }
@@ -132,14 +149,16 @@ object IrohaValidatorSpec extends TestSuite {
       "invalid.example.com"                 -{ assert(isFailure(o.parseHostname)) }
     }
     "Hostname address: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       "localhost"                           -{ assert(isSuccess(o.parseHostname)) }
       "www.google.com"                      -{ assert(isSuccess(o.parseHostname)) }
       "terra.mathminds.io"                  -{ assert(isSuccess(o.parseHostname)) }
     }
 
     "Peer address: Should reject invalid input: "- {
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       ""                                    -{ assert(isFailure(o.parsePeerAddress)) }
       "0"                                   -{ assert(isFailure(o.parsePeerAddress)) }
       "0.0"                                 -{ assert(isFailure(o.parsePeerAddress)) }
@@ -150,7 +169,8 @@ object IrohaValidatorSpec extends TestSuite {
       "invalid.example.com"                 -{ assert(isFailure(o.parsePeerAddress)) }
     }
     "Peer address: Should accept valid input: "-{
-      val o = new Object with Iroha.Validation
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
       // IPv4
       "127.0.0.1"                           -{ assert(isSuccess(o.parsePeerAddress)) }
       "192.168.0.1"                         -{ assert(isSuccess(o.parsePeerAddress)) }

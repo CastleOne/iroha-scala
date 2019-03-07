@@ -16,39 +16,38 @@ package net.cimadai.crypto
 
 import acyclic.pkg
 
-sealed trait SHA3EdDSAKeyPair {
-  val publicKey : SHA3EdDSAPublicKey
-  val privateKey: SHA3EdDSAPrivateKey
+sealed trait KeyPair {
+  val publicKey : PublicKey
+  val privateKey: PrivateKey
 }
-object SHA3EdDSAKeyPair {
+object  KeyPair {
   import Implicits._
   import jp.co.soramitsu.crypto.ed25519.{EdDSAPrivateKey, EdDSAPublicKey}
   import scala.util.Try
-  import java.security.KeyPair
 
-  private case class impl(publicKey: SHA3EdDSAPublicKey, privateKey: SHA3EdDSAPrivateKey) extends SHA3EdDSAKeyPair
+  private case class impl(publicKey: PublicKey, privateKey: PrivateKey) extends KeyPair
 
   /** Create a [SHA3EdDSAKeyPair] from [SHA3EdDSAPublicKey] and [SHA3EdDSAPrivateKey]. */
-  def apply(publicKey: SHA3EdDSAPublicKey, privateKey: SHA3EdDSAPrivateKey): SHA3EdDSAKeyPair =
+  def apply(publicKey: PublicKey, privateKey: PrivateKey): KeyPair =
     new impl(publicKey, privateKey)
 
   /**
     * Create a [SHA3EdDSAKeyPair] from a [String].
     * @param seed is the private key
     */
-  def apply(seed: String)(implicit context: SHA3EdDSAContext): Try[SHA3EdDSAKeyPair] =
+  def apply(seed: String)(implicit context: Try[Crypto]): Try[KeyPair] =
     apply(seed.bytes)
 
   /**
     * Create a [SHA3EdDSAKeyPair] from a byte array.
     * @param seed the private key
     */
-  def apply(seed: Array[Byte])(implicit context: SHA3EdDSAContext): Try[SHA3EdDSAKeyPair] = {
+  def apply(seed: Array[Byte])(implicit context: Try[Crypto]): Try[KeyPair] = {
     assume(seed.length == 32)
     assume(seed.hexa.forall(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
     for {
-      privateKey <- SHA3EdDSAPrivateKey(seed)
-      publicKey  <- SHA3EdDSAPublicKey(privateKey.publicKeyBytes)
+      privateKey <- PrivateKey(seed)
+      publicKey  <- PublicKey(privateKey.publicKeyBytes)
     } yield {
       apply(publicKey, privateKey)
     }
@@ -57,16 +56,15 @@ object SHA3EdDSAKeyPair {
   /**
     * Create a random [SHA3EdDSAKeyPair].
     */
-  def random(implicit context: SHA3EdDSAContext): Try[SHA3EdDSAKeyPair] =
+  def random(implicit context: Try[Crypto]): Try[KeyPair] =
     for {
       kp <- randomKeyPair
-      publicKey  <- SHA3EdDSAPublicKey(kp.getPublic.asInstanceOf[EdDSAPublicKey])
-      privateKey <- SHA3EdDSAPrivateKey(kp.getPrivate.asInstanceOf[EdDSAPrivateKey])
+      publicKey  <- PublicKey(kp.getPublic.asInstanceOf[EdDSAPublicKey])
+      privateKey <- PrivateKey(kp.getPrivate.asInstanceOf[EdDSAPrivateKey])
     } yield {
       apply(publicKey, privateKey)
     }
 
-  private def randomKeyPair(implicit context: SHA3EdDSAContext): Try[KeyPair] = Try {
-    context.crypto.generateKeypair
-  }
+  private def randomKeyPair(implicit context: Try[Crypto]): Try[java.security.KeyPair] =
+    context.map(ctx => ctx.crypto.generateKeypair)
 }
