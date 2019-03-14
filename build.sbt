@@ -1,4 +1,3 @@
-organization in ThisBuild := "org.hyperledger"
 scalaVersion in ThisBuild := "2.12.8"
 licenses in ThisBuild += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html"))
 
