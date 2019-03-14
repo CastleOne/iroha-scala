@@ -252,12 +252,15 @@ object Iroha {
         .map(domain => impl(domain))
   }
 
-  trait Account extends Display
+  trait Account extends Display {
+    val name: String
+    val domain: String
+  }
   object Account extends Validation {
     import scala.util.Try
 
-    private case class impl(value: String) extends Account {
-      override def toString: String = value
+    private case class impl(val name: String, val domain: String) extends Account {
+      override def toString: String = s"${name}@${domain}"
     }
 
     //FIXME: import monix.eval.Task
@@ -268,12 +271,12 @@ object Iroha {
     //FIXME:       apply(account, domain)))
 
     /** Builds [Account] from account name and domain name */
-    def apply(account: String, domain: String): Try[Account] =
+    def apply(name: String, domain: String): Try[Account] =
       for {
-        _ <- parseAccountName(account)
-        _ <- parseDomainName(domain)
+        n <- parseAccountName(name)
+        d <- parseDomainName(domain)
       } yield {
-        new impl(s"${account}@${domain}")
+        new impl(n, d)
       }
   }
 
@@ -418,8 +421,8 @@ object Iroha {
     def addSignatory(account: Account, publicKey: PublicKey): Try[Command] = Try {
       Command(AddSignatory(commands.AddSignatory(account, publicKey.hexa))) }
 
-    def createAccount(name: Account, domain: Domain, publicKey: PublicKey): Try[Command] = Try {
-      Command(CreateAccount(commands.CreateAccount(name, domain, publicKey.hexa))) }
+    def createAccount(account: Account, domain: Domain, publicKey: PublicKey): Try[Command] = Try {
+      Command(CreateAccount(commands.CreateAccount(account.name, domain, publicKey.hexa))) }
 
     def createAsset(name: String, domain: Domain, precision: Int): Try[Command] = Try {
       Command(CreateAsset(commands.CreateAsset(name, domain, precision))) }
@@ -451,12 +454,11 @@ object Iroha {
             amount)))
     }
 
-    //XXX private def txHash(transaction: Transaction): Array[Byte] = {
-    //XXX   digest.digest(transaction.payload.get.toByteArray)
-    //XXX }
-
     def txStatusRequest(transaction: Transaction): Try[TxStatusRequest] = Try {
-      TxStatusRequest(transaction.payload.get.toByteArray.hexa) }
+      import net.cimadai.crypto.Crypto
+      implicit val crypto: Crypto = ???
+
+      TxStatusRequest(transaction.payload.get.toByteArray.hash.hexa) }
       //XXX TxStatusRequest(Utils.bytesToHex(Iroha.CommandService.txHash(transaction))) } //FIXME: Code review
   }
 
@@ -465,18 +467,18 @@ object Iroha {
     import net.cimadai.crypto.Implicits._
     import scala.util.Try
 
-    def transaction(creator: Account, creatorKeyPair: KeyPair, commands: Command*): Try[Transaction] = {
+    def transaction(creator: Account, creatorKeyPair: KeyPair, commands: Command*): Try[Transaction] = Try {
+      import net.cimadai.crypto.Crypto
       val createdTime = System.currentTimeMillis()
-      val maybeReducedPayload = commands.headOption
-        .map(_ => Transaction.Payload.ReducedPayload(commands, creator, createdTime, 1))
+      val maybeReducedPayload =
+        commands.headOption
+          .map(_ => Transaction.Payload.ReducedPayload(commands, creator, createdTime, 1))
 
       val payload = Transaction.Payload(reducedPayload = maybeReducedPayload)
-      val privateKey = creatorKeyPair.privateKey
-      val publicKey = creatorKeyPair.publicKey
-      privateKey.sign(payload.toByteArray).map { signed =>
-        val signature = Signature(publicKey.hexa, signed.hexa)
-        Transaction(Some(payload), Seq(signature))
-      }
+      val hash = payload.toByteArray.hash
+      val rawSignature = Crypto.crypto.rawSign(hash, creatorKeyPair.inner)
+      val signature = Signature(creatorKeyPair.publicKey.hexa, rawSignature.hexa)
+      Transaction(Some(payload), Seq(signature))
     }
   }
 
@@ -490,7 +492,7 @@ object Iroha {
     import net.cimadai.crypto.Implicits._
     import scala.concurrent.Future
 
-    def send(tx: Transaction)(implicit stub: CmdStub, crypto: Crypto): Task[ToriiResponse] =
+    def send(tx: Transaction)(implicit stub: CmdStub): Task[ToriiResponse] =
       request(tx)
         .redeemWith(
           t => Task.raiseError[ToriiResponse](t),
@@ -505,11 +507,10 @@ object Iroha {
         }
       }
 
-    def status(tx: Transaction)(implicit stub: CmdStub, crypto: Crypto): Task[ToriiResponse] =
+    def status(tx: Transaction)(implicit stub: CmdStub): Task[ToriiResponse] =
       Task.deferFutureAction { implicit scheduler: Scheduler =>
         val bytes: Array[Byte] = tx.getPayload.toByteArray
-        val hash: String =  crypto.digest.digest(bytes).hexa
-        val request = new TxStatusRequest(hash)
+        val request = new TxStatusRequest(bytes.hash.hexa)
         try {
           stub.status(request)
         } catch {
@@ -553,7 +554,8 @@ object Iroha {
     import net.cimadai.crypto.Implicits._
     import scala.util.Try
 
-    private def createQuery(creator: Account, creatorKeyPair: KeyPair, query: Query.Payload.Query): Try[Query] = {
+    private def createQuery(creator: Account, creatorKeyPair: KeyPair, query: Query.Payload.Query): Try[Query] = Try {
+      import net.cimadai.crypto.Crypto
       val createdTime = System.currentTimeMillis()
       val payload =
         Query.Payload(
@@ -561,12 +563,11 @@ object Iroha {
             queries.QueryPayloadMeta(
               createdTime = createdTime, creatorAccountId = creator.toString, queryCounter = queryCounter.getAndIncrement)),
           query = query)
-      val privateKey = creatorKeyPair.privateKey
-      val publicKey  = creatorKeyPair.publicKey
-      privateKey.sign(payload.toByteArray).map { signed =>
-        val signature = Some(Signature(publicKey.hexa, signed.hexa))
-        Query(Some(payload), signature)
-      }
+
+      val hash = payload.toByteArray.hash
+      val rawSignature = Crypto.crypto.rawSign(hash, creatorKeyPair.inner)
+      val signature = Signature(creatorKeyPair.publicKey.hexa, rawSignature.hexa)
+      Query(Some(payload), Some(signature))
     }
 
     def getAccount(creator: Account, creatorKeyPair: KeyPair, account: Account): Try[Query] =

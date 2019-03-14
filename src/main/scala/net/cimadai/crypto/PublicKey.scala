@@ -14,13 +14,10 @@ package net.cimadai.crypto
   * limitations under the License.
   */
 
-import acyclic.pkg
-
 sealed trait PublicKey {
   import jp.co.soramitsu.crypto.ed25519.EdDSAPublicKey
   import scala.util.Try
   import java.nio.charset.Charset
-  val ctx: Crypto
   val inner: EdDSAPublicKey
   /** Returns the public key as a byte array. */
   def bytes: Array[Byte]
@@ -39,17 +36,17 @@ object PublicKey {
   import jp.co.soramitsu.crypto.ed25519.spec.EdDSAPublicKeySpec
   import scala.util.Try
 
-  private case class impl(ctx: Crypto, inner: EdDSAPublicKey) extends PublicKey {
+  private case class impl(inner: EdDSAPublicKey) extends PublicKey {
+    import Implicits._
     import scala.util.Try
     import java.nio.charset.Charset
-    import Implicits._
     def bytes: Array[Byte] = inner.getAbyte
     def hexa: String = bytes.hexa
     def verify(signature: Array[Byte], message: String, charset: Charset): Try[Boolean] = verify(signature, message.getBytes(charset))
     def verify(signature: Array[Byte], message: String): Try[Boolean] = verify(signature, message.getBytes)
     def verify(signature: Array[Byte], bytes: Array[Byte]): Try[Boolean] = Try {
-      ctx.engine.initVerify(inner)
-      ctx.engine.verifyOneShot(bytes, signature)
+      Crypto.engine512.initVerify(inner)
+      Crypto.engine512.verifyOneShot(bytes, signature)
     }
   }
 
@@ -57,23 +54,22 @@ object PublicKey {
     * Create a [SHA3EdDSAPublicKey] from a [EdDSAPublicKey].
     * @param publicKey is the public key
     */
-  def apply(publicKey: EdDSAPublicKey)(implicit context: Try[Crypto]): Try[PublicKey] =
-    context.map(ctx => impl(ctx, publicKey))
+  def apply(publicKey: EdDSAPublicKey): PublicKey =
+    impl(publicKey)
 
   /**
     * Create a [SHA3EdDSAPublicKey] from a [String].
     * @param seed is the public key
     */
-  def apply(seed: String)(implicit context: Try[Crypto]): Try[PublicKey] =
-    apply(seed.bytes)
+  def apply(seed: String): Try[PublicKey] =
+    seed.bytes.flatMap(apply)
 
   /**
     * Create a [SHA3EdDSAPublicKey] from a byte array.
     * @param seed the private key
     */
-  def apply(seed: Array[Byte])(implicit context: Try[Crypto]): Try[PublicKey] =
-    context.map(ctx =>
-      impl(ctx,
-        new EdDSAPublicKey(
-          new EdDSAPublicKeySpec(seed, ctx.spec))))
+  def apply(seed: Array[Byte]): Try[PublicKey] =
+    Try {
+      import jp.co.soramitsu.crypto.ed25519.Ed25519Sha3
+      impl(new EdDSAPublicKey(new EdDSAPublicKeySpec(seed, Ed25519Sha3.spec))) }
 }

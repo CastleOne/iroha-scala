@@ -14,13 +14,10 @@ package net.cimadai.crypto
   * limitations under the License.
   */
 
-import acyclic.pkg
-
 sealed trait PrivateKey {
   import jp.co.soramitsu.crypto.ed25519.EdDSAPrivateKey
   import scala.util.Try
   import java.nio.charset.Charset
-  val ctx: Crypto
   val inner: EdDSAPrivateKey
   /** Returns the public key as a byte array. */
   def publicKeyBytes: Array[Byte]
@@ -30,6 +27,7 @@ sealed trait PrivateKey {
   def bytes: Array[Byte]
   /** Returns the private key as an hexadecimal [String]. */
   def hexa: String
+
   /** Signs a message [String] under a certain [Charset]. */
   def sign(message: String, charset: Charset): Try[Array[Byte]]
   /** Signs a message [String]. */
@@ -43,7 +41,7 @@ object PrivateKey {
   import jp.co.soramitsu.crypto.ed25519.spec.EdDSAPrivateKeySpec
   import scala.util.Try
 
-  private case class impl(ctx: Crypto, inner: EdDSAPrivateKey) extends PrivateKey {
+  private case class impl(inner: EdDSAPrivateKey) extends PrivateKey {
     import scala.util.Try
     import java.nio.charset.Charset
 
@@ -55,9 +53,9 @@ object PrivateKey {
     def sign(message: String, charset: Charset): Try[Array[Byte]] = sign(message.getBytes(charset))
     def sign(message: String): Try[Array[Byte]] = sign(message.getBytes)
     def sign(bytes: Array[Byte]): Try[Array[Byte]] = Try {
-      ctx.engine.initSign(inner)
-      val hash = ctx.digest.digest(bytes)
-      ctx.engine.signOneShot(hash)
+      val hash = Crypto.digest256.digest(bytes)
+      Crypto.engine512.initSign(inner)
+      Crypto.engine512.signOneShot(hash)
     }
   }
 
@@ -65,23 +63,22 @@ object PrivateKey {
     * Create a [SHA3EdDSAPrivateKey] from a [EdDSAPrivateKey].
     * @param seed is the private key
     */
-  def apply(privateKey: EdDSAPrivateKey)(implicit context: Try[Crypto]): Try[PrivateKey] =
-    context.map(ctx => impl(ctx, privateKey))
+  def apply(privateKey: EdDSAPrivateKey): PrivateKey =
+    impl(privateKey)
 
   /**
     * Create a [SHA3EdDSAPrivateKey] from a [String].
     * @param seed is the private key
     */
-  def apply(seed: String)(implicit context: Try[Crypto]): Try[PrivateKey] =
-    apply(seed.bytes)
+  def apply(seed: String): Try[PrivateKey] =
+    seed.bytes.flatMap(apply)
 
   /**
     * Create a [SHA3EdDSAPrivateKey] from a byte array.
     * @param seed the private key
     */
-  def apply(seed: Array[Byte])(implicit context: Try[Crypto]): Try[PrivateKey] =
-    context.map(ctx =>
-      impl(ctx,
-        new EdDSAPrivateKey(
-          new EdDSAPrivateKeySpec(seed, ctx.spec))))
+  def apply(seed: Array[Byte]): Try[PrivateKey] =
+    Try {
+      import jp.co.soramitsu.crypto.ed25519.Ed25519Sha3
+      impl(new EdDSAPrivateKey(new EdDSAPrivateKeySpec(seed, Ed25519Sha3.spec))) }
 }

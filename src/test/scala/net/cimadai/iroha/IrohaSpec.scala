@@ -5,7 +5,7 @@ import utest._
 
 object IrohaSpec extends TestSuite with TestHelpers {
   import monix.eval.Task
-  import scala.util.{Try,Success,Failure}
+  import scala.util.{Failure, Success, Try}
 
   val tests = this {
     val host = "localhost"
@@ -18,7 +18,7 @@ object IrohaSpec extends TestSuite with TestHelpers {
 
     "create a new account" - {
       import iroha.protocol.endpoint.ToriiResponse
-      import net.cimadai.crypto.{Crypto, KeyPair}
+      import net.cimadai.crypto.KeyPair
       import net.cimadai.iroha.Iroha.{Account, CmdStub, Domain, QryStub}
 
       val domainName = "example.com"
@@ -27,11 +27,12 @@ object IrohaSpec extends TestSuite with TestHelpers {
       implicit val cmd: CmdStub = CommandService_v1Grpc.stub(channel)
       implicit val qry: QryStub = QueryService_v1Grpc.stub(channel)
 
-      val keypair = KeyPair.random(Crypto.apply)
+      val keypair = KeyPair.random
 
       val admin = Account(adminAccountName, domainName)
       val domain = Domain(domainName)
-      val user = Account(createRandomName(10), domainName)
+      val username = createRandomName(10)
+      val user = Account("aaabbbccc", domainName)
 
       val cb = Iroha.CommandBuilder
       val tb = Iroha.TransactionBuilder
@@ -40,32 +41,56 @@ object IrohaSpec extends TestSuite with TestHelpers {
       val tryTask: Try[Task[ToriiResponse]] =
         for {
           a <- admin; u <- user; d <- domain; kp <- keypair
-          crypto <- Crypto.apply
           createAccount <- cb.createAccount(u, d, kp.publicKey)
           tx <- tb.transaction(a, kp, createAccount)
           //TODO: checkTransactionCommit(tx)
         } yield {
-          api.send(tx)(cmd, crypto)
+          api.send(tx)(cmd)
         }
 
-      tryTaskNow[ToriiResponse](tryTask)
+      val result = tryTaskNow(tryTask)
+      result match {
+        case Success(response) =>
+          import iroha.protocol.endpoint.TxStatus
+          val status = response.txStatus
+          assert(status == TxStatus.COMMITTED)
+        case Failure(t) => throw t
+      }
     }
   }
 
 
-  def tryTaskNow[A](tryTask: Try[Task[A]]): Unit =
-    tryTask match {
-      case Success(task) =>
+  import iroha.protocol.endpoint.ToriiResponse
+  def tryTaskNow(tryTask: Try[Task[ToriiResponse]]): Try[ToriiResponse] = {
+    val result = Try {
+      tryTask match {
+        case Success(task) =>
         import monix.execution.Scheduler
-        implicit val sc: Scheduler = Scheduler.global
-        task.coeval.foreach { either =>
-          either match {
-            case Left(future)  => throw new RuntimeException("Future must be asynchronous")
-            case Right(result) => println(s"Result: ${result}")
+        import scala.concurrent.Await
+        import scala.concurrent.duration._
+          import scala.language.postfixOps
+          implicit val sc: Scheduler = Scheduler.global
+          task.coeval.value match {
+            case Left(future)  => Await.result(future, 3 seconds)
+            case Right(result) => result
           }
+      case Failure(t) => throw t
+      }
+    }
+
+    result match {
+      case Success(response) =>
+        import iroha.protocol.endpoint.TxStatus
+        if(response.txStatus != TxStatus.COMMITTED) {
+          println(response.toProtoString) //FIXME: should use some logging framework
+          Thread.sleep(1000)
         }
       case Failure(t) => throw t
     }
+
+    result
+  }
+
 }
 
       /*
