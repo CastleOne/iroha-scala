@@ -12,10 +12,16 @@ object IrohaValidatorSpec extends TestSuite with TestHelpers {
       "$abc"             -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
       "morgan%stanley"   -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
       "japan$05"         -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
+      //---
       "abc"              -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
       "test"             -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
       "morgan_stanley"   -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
       "japan05"          -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
+      //---
+      "abc.xx"           -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
+      "abc.xx.yy"        -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
+      "abc.xx.yy.zz"     -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
+      "xn--abc.xx.yy.zz" -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
     }
 
     "Domain names: Should validate input according to RFC1035 and RFC1183: "-{
@@ -24,6 +30,12 @@ object IrohaValidatorSpec extends TestSuite with TestHelpers {
       "$abc"             -{ assert(isFailure(o.parseDomainName)) }
       "morgan%stanley"   -{ assert(isFailure(o.parseDomainName)) }
       "japan$05"         -{ assert(isFailure(o.parseDomainName)) }
+      //---
+      "abc"              -{ assert(isFailure(o.parseDomainName)) }
+      "test"             -{ assert(isFailure(o.parseDomainName)) }
+      "morgan_stanley"   -{ assert(isFailure(o.parseDomainName)) }
+      "japan05"          -{ assert(isFailure(o.parseDomainName)) }
+      //---
       "abc.xx"           -{ assert(isSuccess(o.parseDomainName)) }
       "abc.xx.yy"        -{ assert(isSuccess(o.parseDomainName)) }
       "abc.xx.yy.zz"     -{ assert(isSuccess(o.parseDomainName)) }
