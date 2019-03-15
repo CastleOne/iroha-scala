@@ -43,34 +43,42 @@ object Iroha {
   //--------------------------------------------------------------------------------------------------------------------
 
   trait Validation {
+    import scala.util.matching.Regex
     import scala.util.{Failure, Success, Try}
 
-    /** Parse domain name according to RFC1035 and RFC5891 */
-    def parseDomainName(value: String): Try[String] =
-      sizeDomainName(value)
-        .flatMap(value => validateDomainName(value))
+    /** Parse domain name according to RFC1035 and RFC1183 */
+    def parseDomainName(value: String): Try[String] = parseDomainName(value, false)
 
-    private def sizeDomainName(value: String): Try[String] =
-      if(0 < value.length && value.length <= lengthDomainName)
+    /** Parse domain name according, allowing parsing in legacy mode */
+    def parseDomainName(value: String, legacy: Boolean): Try[String] =
+      if(legacy)
+        sizeDomainName(value, lengthDomainNameLegacy)
+          .flatMap(value => validateDomainName(value, regexDomainNameLegacy))
+      else
+        sizeDomainName(value, lengthDomainName)
+          .flatMap(value => validateDomainName(value, regexDomainName))
+
+    private def sizeDomainName(value: String, size: Int): Try[String] =
+      if(0 < value.length && value.length <= size)
         Success(value)
       else
-        Failure(new IllegalArgumentException(s"domain name must be (0,${lengthDomainName}] characters: ${value}"))
+        Failure(new IllegalArgumentException(s"domain name must be (0,${size}] characters: ${value}"))
 
-    private def validateDomainName(value: String): Try[String] =
+    private def validateDomainName(value: String, Pattern: Regex ): Try[String] =
       value match {
-        case regexDomainName(_*) => Success(value)
+        case Pattern(_*) => Success(value)
         case _                   => Failure(new IllegalArgumentException(s"invalid domain name: ${value}"))
       }
 
     //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
     //FIXME: https://github.com/frgomes/iroha-scala/issues/5
     /** Regular expression which matches a domain name */
-    // val regexDomainName = """^(xn--)?((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$""".r //FIXME: https://github.com/frgomes/iroha-scala/issues/5
-    val regexDomainName = """[a-z_0-9]+$""".r
+    val regexDomainName = """^(xn--)?((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$""".r //FIXME: https://github.com/frgomes/iroha-scala/issues/5
+    val regexDomainNameLegacy = """[a-z_0-9]+$""".r
 
     /** Maximum length for a domain name */
-    //XXX val lengthDomainName = 164 //FIXME: https://github.com/frgomes/iroha-scala/issues/5
-    val lengthDomainName = 32
+    val lengthDomainName = 164 //FIXME: https://github.com/frgomes/iroha-scala/issues/5
+    val lengthDomainNameLegacy = 32
 
     //------------
 
@@ -243,9 +251,14 @@ object Iroha {
       override def toString: String = name
     }
 
-    /** Builds [Domain] from domain name */
+    /** Builds [Domain] from domain name according to RFC1035 and RFC1183 */
     def apply(domain: String): Try[Domain] =
       parseDomainName(domain)
+        .map(domain => impl(domain))
+
+    /** Builds [Domain] from domain name allowing parsing in legacy mode */
+    def apply(domain: String, legacy: Boolean): Try[Domain] =
+      parseDomainName(domain, true)
         .map(domain => impl(domain))
   }
 

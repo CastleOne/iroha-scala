@@ -11,6 +11,7 @@ object IrohaSpec extends TestSuite with TestHelpers {
     val host = "localhost"
     val port = 50051
 
+    val legacy = true
     val adminDomainName = "test"
     val adminAccountName = "admin"
     val adminRoleName = "admin"
@@ -33,11 +34,11 @@ object IrohaSpec extends TestSuite with TestHelpers {
       implicit val qryStub: QryStub = QueryService_v1Grpc.stub(channel)
 
       val adminKeypair = KeyPair.apply(adminPublicKeyHexa, adminPrivateKeyHexa)
-      val adminDomain  = Domain(adminDomainName)
+      val adminDomain  = Domain(adminDomainName, legacy)
       val adminAccount = Account(adminAccountName, adminDomain)
       val adminRole    = Role(adminRoleName)
 
-      val domain    = Domain(domainName)
+      val domain    = Domain(domainName, legacy)
 
       val cb = Iroha.CommandBuilder
       val tb = Iroha.TransactionBuilder
@@ -73,10 +74,10 @@ object IrohaSpec extends TestSuite with TestHelpers {
 
       val keypair = KeyPair.apply(adminPublicKeyHexa, adminPrivateKeyHexa)
 
-      val adminDomain = Domain(adminDomainName)
+      val adminDomain = Domain(adminDomainName, legacy)
       val adminAccount = Account(adminAccountName, adminDomain)
 
-      val domain   = Domain(domainName)
+      val domain   = Domain(domainName, legacy)
       val username = createRandomName(10)
       val user     = Account("aaabbbccc", domain)
 

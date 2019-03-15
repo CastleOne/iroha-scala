@@ -6,29 +6,28 @@ object IrohaValidatorSpec extends TestSuite with TestHelpers {
   import scala.util.Try
 
   val tests = this {
-    "Domain names: Should reject invalid input: "- {
+    "Domain names: Should validate input in legacy mode: "-{
+      class wrapper extends Iroha.Validation
+      val o = new wrapper
+      "$abc"             -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
+      "morgan%stanley"   -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
+      "japan$05"         -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
+      "abc"              -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
+      "test"             -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
+      "morgan_stanley"   -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
+      "japan05"          -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
+    }
+
+    "Domain names: Should validate input according to RFC1035 and RFC1183: "-{
       class wrapper extends Iroha.Validation
       val o = new wrapper
       "$abc"             -{ assert(isFailure(o.parseDomainName)) }
       "morgan%stanley"   -{ assert(isFailure(o.parseDomainName)) }
       "japan$05"         -{ assert(isFailure(o.parseDomainName)) }
-    }
-    "Domain names: Should accept valid input: "-{
-      class wrapper extends Iroha.Validation
-      val o = new wrapper
-      "abc"              -{ assert(isSuccess(o.parseDomainName)) }
-      "test"             -{ assert(isSuccess(o.parseDomainName)) }
-      "morgan_stanley"   -{ assert(isSuccess(o.parseDomainName)) }
-      "japan05"          -{ assert(isSuccess(o.parseDomainName)) }
-    }
-
-    "Domain names: Should accept valid input according to RFC1035 and RFC1183: "-{
-      class wrapper extends Iroha.Validation
-      val o = new wrapper
-      "abc.xx"           - pending { assert(isSuccess(o.parseDomainName)) }
-      "abc.xx.yy"        - pending { assert(isSuccess(o.parseDomainName)) }
-      "abc.xx.yy.zz"     - pending { assert(isSuccess(o.parseDomainName)) }
-      "xn--abc.xx.yy.zz" - pending { assert(isSuccess(o.parseDomainName)) }
+      "abc.xx"           -{ assert(isSuccess(o.parseDomainName)) }
+      "abc.xx.yy"        -{ assert(isSuccess(o.parseDomainName)) }
+      "abc.xx.yy.zz"     -{ assert(isSuccess(o.parseDomainName)) }
+      "xn--abc.xx.yy.zz" -{ assert(isSuccess(o.parseDomainName)) }
     }
 
 
