@@ -24,7 +24,7 @@ object IrohaSpec extends TestSuite with TestHelpers {
     import iroha.protocol.endpoint.{CommandService_v1Grpc, QueryService_v1Grpc}
     implicit val channel: ManagedChannel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build
 
-    "create a new domain"- pending {
+    "create a new domain"- ignored {
       import iroha.protocol.endpoint.ToriiResponse
       import net.cimadai.crypto.KeyPair
       import net.cimadai.iroha.Iroha.{Account, CmdStub, Domain, QryStub, Role}
@@ -45,7 +45,7 @@ object IrohaSpec extends TestSuite with TestHelpers {
 
       val tryTask: Try[Task[ToriiResponse]] =
         for {
-          a <- adminAccount; d <- adminDomain; r <- adminRole; kp <- adminKeypair
+          a <- adminAccount; d <- domain; r <- adminRole; kp <- adminKeypair
           cmd <- cb.createDomain(d, r)
           tx <- tb.transaction(a, kp, cmd)
           //TODO: checkTransactionCommit(tx)
