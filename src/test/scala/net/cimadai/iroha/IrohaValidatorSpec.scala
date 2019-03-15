@@ -9,19 +9,19 @@ object IrohaValidatorSpec extends TestSuite with TestHelpers {
     "Domain names: Should validate input in legacy mode: "-{
       class wrapper extends Iroha.Validation
       val o = new wrapper
-      "$abc"             -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
-      "morgan%stanley"   -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
-      "japan$05"         -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
+      "$abc"             -{ assert(isFailure(o.parseDomainName(_, legacy=true))) }
+      "morgan%stanley"   -{ assert(isFailure(o.parseDomainName(_, legacy=true))) }
+      "japan$05"         -{ assert(isFailure(o.parseDomainName(_, legacy=true))) }
       //---
-      "abc"              -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
-      "test"             -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
-      "morgan_stanley"   -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
-      "japan05"          -{ assert(isSuccess(o.parseDomainName(_, legacy= true))) }
+      "abc"              -{ assert(isSuccess(o.parseDomainName(_, legacy=true))) }
+      "test"             -{ assert(isSuccess(o.parseDomainName(_, legacy=true))) }
+      "morgan_stanley"   -{ assert(isSuccess(o.parseDomainName(_, legacy=true))) }
+      "japan05"          -{ assert(isSuccess(o.parseDomainName(_, legacy=true))) }
       //---
-      "abc.xx"           -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
-      "abc.xx.yy"        -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
-      "abc.xx.yy.zz"     -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
-      "xn--abc.xx.yy.zz" -{ assert(isFailure(o.parseDomainName(_, legacy= true))) }
+      "abc.xx"           -{ assert(isFailure(o.parseDomainName(_, legacy=true))) }
+      "abc.xx.yy"        -{ assert(isFailure(o.parseDomainName(_, legacy=true))) }
+      "abc.xx.yy.zz"     -{ assert(isFailure(o.parseDomainName(_, legacy=true))) }
+      "xn--abc.xx.yy.zz" -{ assert(isFailure(o.parseDomainName(_, legacy=true))) }
     }
 
     "Domain names: Should validate input according to RFC1035 and RFC1183: "-{
