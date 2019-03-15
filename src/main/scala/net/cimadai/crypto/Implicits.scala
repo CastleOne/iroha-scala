@@ -40,7 +40,7 @@ object Implicits {
     implicit def bytes: Try[Array[Byte]] = transform(text)
 
     private def transform(data: String): Try[Array[Byte]] = Try {
-      data.sliding(1, 1).toArray
+      data.sliding(2, 2).toArray
         .map(pair => Integer.parseInt(pair, 16).toByte)
     }
 

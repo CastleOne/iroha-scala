@@ -65,10 +65,12 @@ object Iroha {
     //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
     //FIXME: https://github.com/frgomes/iroha-scala/issues/5
     /** Regular expression which matches a domain name */
-    val regexDomainName = "^(xn--)?((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}$".r
+    // val regexDomainName = """^(xn--)?((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$""".r //FIXME: https://github.com/frgomes/iroha-scala/issues/5
+    val regexDomainName = """[a-z_0-9]+$""".r
 
     /** Maximum length for a domain name */
-    val lengthDomainName = 164
+    //XXX val lengthDomainName = 164 //FIXME: https://github.com/frgomes/iroha-scala/issues/5
+    val lengthDomainName = 32
 
     //------------
 
@@ -110,12 +112,12 @@ object Iroha {
 
     //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
     /** Regular expression which matches a IPv4 address */
-    val regexIPv4 = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$".r
+    val regexIPv4 = """^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$""".r
 
 
     //credits: Regular Expressions Cookbook by Steven Levithan, Jan Goyvaerts
     /** Regular expression which matches a IPv6 address */
-    val regexIPv6 = "^(?:(?:(?:[A-F0-9]{1,4}:){6}|(?=(?:[A-F0-9]{0,4}:){0,6}(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$)(([0-9A-F]{1,4}:){0,5}|:)((:[0-9A-F]{1,4}){1,5}:|:))(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}|(?=(?:[A-F0-9]{0,4}:){0,7}[A-F0-9]{0,4}$)(([0-9A-F]{1,4}:){1,7}|:)((:[0-9A-F]{1,4}){1,7}|:))$".r
+    val regexIPv6 = """^(?:(?:(?:[A-F0-9]{1,4}:){6}|(?=(?:[A-F0-9]{0,4}:){0,6}(?:[0-9]{1,3}.){3}[0-9]{1,3}$)(([0-9A-F]{1,4}:){0,5}|:)((:[0-9A-F]{1,4}){1,5}:|:))(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}|(?=(?:[A-F0-9]{0,4}:){0,7}[A-F0-9]{0,4}$)(([0-9A-F]{1,4}:){1,7}|:)((:[0-9A-F]{1,4}){1,7}|:))$""".r
 
     //------------
 
@@ -231,20 +233,15 @@ object Iroha {
     def toString: String
   }
 
-  trait Domain extends Display
+  trait Domain extends Display {
+    val name: String
+  }
   object Domain extends Validation {
     import scala.util.Try
 
-    private case class impl(value: String) extends Domain {
-      override def toString: String = value
+    private case class impl(name: String) extends Domain {
+      override def toString: String = name
     }
-
-    //FIXME: import monix.eval.Task
-    //FIXME: /** Asynchronously builds [Domain] from domain name */
-    //FIXME: def task(domain: String): Task[Domain] =
-    //FIXME:   Task.defer(
-    //FIXME:     Task.fromTry(
-    //FIXME:       apply(domain)))
 
     /** Builds [Domain] from domain name */
     def apply(domain: String): Try[Domain] =
@@ -257,52 +254,50 @@ object Iroha {
     val domain: String
   }
   object Account extends Validation {
+
     import scala.util.Try
 
     private case class impl(val name: String, val domain: String) extends Account {
       override def toString: String = s"${name}@${domain}"
     }
 
-    //FIXME: import monix.eval.Task
-    //FIXME: /** Asynchronously builds [Account] from account name and domain name */
-    //FIXME: def task(account: String, domain: String): Task[Account] =
-    //FIXME:   Task.defer(
-    //FIXME:     Task.fromTry(
-    //FIXME:       apply(account, domain)))
+    /** Builds [Account] from account name and domain name */
+    def apply(account: String, domain: Try[Domain]): Try[Account] =
+      for {
+        d <- domain
+        n <- parseAccountName(account)
+      } yield
+        new impl(n, d.name)
 
     /** Builds [Account] from account name and domain name */
-    def apply(name: String, domain: String): Try[Account] =
-      for {
-        n <- parseAccountName(name)
-        d <- parseDomainName(domain)
-      } yield {
-        new impl(n, d)
-      }
+    def apply(account: String, domain: Domain): Try[Account] =
+      parseAccountName(account)
+        .map(name => new impl(name, domain.name))
   }
 
-  trait Asset extends Display
+  trait Asset extends Display {
+    val name: String
+    val domain: String
+  }
   object Asset extends Validation {
     import scala.util.Try
 
-    private case class impl(value: String) extends Asset {
-      override def toString: String = value
+    private case class impl(name: String, domain: String) extends Asset {
+      override def toString: String = s"${name}#${domain}"
     }
 
-    //FIXME: import monix.eval.Task
-    //FIXME: /** Asynchronously builds [Asset] from asset name and domain name */
-    //FIXME: def task(asset: String, domain: String): Task[Asset] =
-    //FIXME:   Task.defer(
-    //FIXME:     Task.fromTry(
-    //FIXME:       apply(asset, domain)))
+    /** Builds [Asset] from asset name and domain name */
+    def apply(asset: String, domain: Try[Domain]): Try[Asset] =
+      for {
+        d <- domain
+        n <- parseAssetName(asset)
+      } yield
+        new impl(n, d.name)
 
     /** Builds [Asset] from asset name and domain name */
-    def apply(asset: String, domain: String): Try[Asset] =
-      for {
-        _ <- parseAssetName(asset)
-        _ <- parseDomainName(domain)
-      } yield {
-        new impl(s"${asset}#${domain}")
-      }
+    def apply(asset: String, domain: Domain): Try[Asset] =
+      parseAssetName(asset)
+        .map(name => new impl(name, domain.name))
   }
 
   trait Role extends Display
@@ -312,13 +307,6 @@ object Iroha {
     private case class impl(value: String) extends Role  {
       override def toString: String = value
     }
-
-    //FIXME: import monix.eval.Task
-    //FIXME: /** Asynchronously builds [Role] from role name */
-    //FIXME: def task(role: String): Task[Role] =
-    //FIXME:   Task.defer(
-    //FIXME:     Task.fromTry(
-    //FIXME:       apply(role)))
 
     /** Builds [Role] from role */
     def apply(role: String): Try[Role] =
@@ -334,13 +322,6 @@ object Iroha {
       override def toString: String = value.doubleValue.toString
     }
 
-    //FIXME: import monix.eval.Task
-    //FIXME: /** Asynchronously builds [Amount] from [BigDecimal] */
-    //FIXME: def task(amount: BigDecimal): Task[Amount] =
-    //FIXME:   Task.defer(
-    //FIXME:     Task.fromTry(
-    //FIXME:       apply(amount)))
-
     /** builds [Amount] from [BigDecimal] */
     def apply(amount: BigDecimal): Try[Amount] =
       parseAmount(amount)
@@ -354,13 +335,6 @@ object Iroha {
     private case class impl(value: String) extends Description {
       override def toString: String = value.toString
     }
-
-    //FIXME: import monix.eval.Task
-    //FIXME: /** Asynchronously builds [Description] from [String] */
-    //FIXME: def task(description: String): Task[Description] =
-    //FIXME:   Task.defer(
-    //FIXME:     Task.fromTry(
-    //FIXME:       apply(description)))
 
     /** builds [Description] from [String] */
     def apply(description: String): Try[Description] =
@@ -379,13 +353,6 @@ object Iroha {
       override def toString: String = address.toString
       override def toPeer: Peer = iroha.protocol.primitive.Peer(address, publicKey.hexa)
     }
-
-    //FIXME: import monix.eval.Task
-    //FIXME: /** Asynchronously builds [PeerAddress] from [Domain] and a [EdDSAPublicKey] */
-    //FIXME: def task(address: String, publicKey: SHA3EdDSAPublicKey): Task[PeerAddress] =
-    //FIXME:   Task.defer(
-    //FIXME:     Task.fromTry(
-    //FIXME:       apply(address, publicKey)))
 
     /** builds [PeerAddress] from [Domain] and a [EdDSAPublicKey] */
     def apply(address: String, publicKey: PublicKey): Try[PeerAddress] =
@@ -424,11 +391,11 @@ object Iroha {
     def createAccount(account: Account, domain: Domain, publicKey: PublicKey): Try[Command] = Try {
       Command(CreateAccount(commands.CreateAccount(account.name, domain, publicKey.hexa))) }
 
-    def createAsset(name: String, domain: Domain, precision: Int): Try[Command] = Try {
-      Command(CreateAsset(commands.CreateAsset(name, domain, precision))) }
+    def createAsset(asset: Asset, domain: Domain, precision: Int): Try[Command] = Try {
+      Command(CreateAsset(commands.CreateAsset(asset.name, domain, precision))) }
 
-    def createDomain(name: String, defaultRole: Role): Try[Command] = Try {
-      Command(CreateDomain(commands.CreateDomain(name, defaultRole))) }
+    def createDomain(domain: Domain, defaultRole: Role): Try[Command] = Try {
+      Command(CreateDomain(commands.CreateDomain(domain.name, defaultRole))) }
 
     def removeSignatory(account: Account, publicKey: PublicKey): Try[Command] = Try {
       Command(RemoveSignatory(commands.RemoveSignatory(account, publicKey.hexa))) }
@@ -487,10 +454,9 @@ object Iroha {
     import com.google.protobuf.empty.Empty
     import monix.eval.Task
     import monix.execution.Scheduler
-    import net.cimadai.crypto.Crypto
-    import scala.util.control.NonFatal
     import net.cimadai.crypto.Implicits._
     import scala.concurrent.Future
+    import scala.util.control.NonFatal
 
     def send(tx: Transaction)(implicit stub: CmdStub): Task[ToriiResponse] =
       request(tx)

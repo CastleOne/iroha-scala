@@ -11,28 +11,33 @@ object IrohaSpec extends TestSuite with TestHelpers {
     val host = "localhost"
     val port = 50051
 
+    val adminDomainName = "test"
+    val adminAccountName = "admin"
+    val adminRoleName = "admin"
+
+    val domainName = adminDomainName //FIXME: should be "example.com". See: https://github.com/frgomes/iroha-scala/issues/5
+
+    val adminPublicKeyHexa  = "43eeb17f0bab10dd51ab70983c25200a1742d31b3b7b54c38c34d7b827b26eed"
+    val adminPrivateKeyHexa = "0000000000000000000000000000000000000000000000000000000000000000"
+
     import io.grpc.{ManagedChannel, ManagedChannelBuilder}
     import iroha.protocol.endpoint.{CommandService_v1Grpc, QueryService_v1Grpc}
     implicit val channel: ManagedChannel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build
 
-
-    "create a new account" - {
+    "create a new domain"- pending {
       import iroha.protocol.endpoint.ToriiResponse
       import net.cimadai.crypto.KeyPair
-      import net.cimadai.iroha.Iroha.{Account, CmdStub, Domain, QryStub}
+      import net.cimadai.iroha.Iroha.{Account, CmdStub, Domain, QryStub, Role}
 
-      val domainName = "example.com"
-      val adminAccountName = "admin"
+      implicit val cmdStub: CmdStub = CommandService_v1Grpc.stub(channel)
+      implicit val qryStub: QryStub = QueryService_v1Grpc.stub(channel)
 
-      implicit val cmd: CmdStub = CommandService_v1Grpc.stub(channel)
-      implicit val qry: QryStub = QueryService_v1Grpc.stub(channel)
+      val adminKeypair = KeyPair.apply(adminPublicKeyHexa, adminPrivateKeyHexa)
+      val adminDomain  = Domain(adminDomainName)
+      val adminAccount = Account(adminAccountName, adminDomain)
+      val adminRole    = Role(adminRoleName)
 
-      val keypair = KeyPair.random
-
-      val admin = Account(adminAccountName, domainName)
-      val domain = Domain(domainName)
-      val username = createRandomName(10)
-      val user = Account("aaabbbccc", domainName)
+      val domain    = Domain(domainName)
 
       val cb = Iroha.CommandBuilder
       val tb = Iroha.TransactionBuilder
@@ -40,12 +45,12 @@ object IrohaSpec extends TestSuite with TestHelpers {
 
       val tryTask: Try[Task[ToriiResponse]] =
         for {
-          a <- admin; u <- user; d <- domain; kp <- keypair
-          createAccount <- cb.createAccount(u, d, kp.publicKey)
-          tx <- tb.transaction(a, kp, createAccount)
+          a <- adminAccount; d <- adminDomain; r <- adminRole; kp <- adminKeypair
+          cmd <- cb.createDomain(d, r)
+          tx <- tb.transaction(a, kp, cmd)
           //TODO: checkTransactionCommit(tx)
         } yield {
-          api.send(tx)(cmd)
+          api.send(tx)(cmdStub)
         }
 
       val result = tryTaskNow(tryTask)
@@ -57,6 +62,48 @@ object IrohaSpec extends TestSuite with TestHelpers {
         case Failure(t) => throw t
       }
     }
+
+    "create a new account"- {
+      import iroha.protocol.endpoint.ToriiResponse
+      import net.cimadai.crypto.KeyPair
+      import net.cimadai.iroha.Iroha.{Account, CmdStub, Domain, QryStub}
+
+      implicit val cmdStub: CmdStub = CommandService_v1Grpc.stub(channel)
+      implicit val qryStub: QryStub = QueryService_v1Grpc.stub(channel)
+
+      val keypair = KeyPair.apply(adminPublicKeyHexa, adminPrivateKeyHexa)
+
+      val adminDomain = Domain(adminDomainName)
+      val adminAccount = Account(adminAccountName, adminDomain)
+
+      val domain   = Domain(domainName)
+      val username = createRandomName(10)
+      val user     = Account("aaabbbccc", domain)
+
+      val cb = Iroha.CommandBuilder
+      val tb = Iroha.TransactionBuilder
+      val api = Iroha.CommandService
+
+      val tryTask: Try[Task[ToriiResponse]] =
+        for {
+          a <- adminAccount; u <- user; d <- domain; kp <- keypair
+          cmd <- cb.createAccount(u, d, kp.publicKey)
+          tx <- tb.transaction(a, kp, cmd)
+          //TODO: checkTransactionCommit(tx)
+        } yield {
+          api.send(tx)(cmdStub)
+        }
+
+      val result = tryTaskNow(tryTask)
+      result match {
+        case Success(response) =>
+          import iroha.protocol.endpoint.TxStatus
+          val status = response.txStatus
+          assert(status == TxStatus.COMMITTED)
+        case Failure(t) => throw t
+      }
+    }
+
   }
 
 
@@ -68,7 +115,7 @@ object IrohaSpec extends TestSuite with TestHelpers {
         import monix.execution.Scheduler
         import scala.concurrent.Await
         import scala.concurrent.duration._
-          import scala.language.postfixOps
+        import scala.language.postfixOps
           implicit val sc: Scheduler = Scheduler.global
           task.coeval.value match {
             case Left(future)  => Await.result(future, 3 seconds)

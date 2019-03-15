@@ -20,9 +20,9 @@ sealed trait KeyPair {
   val privateKey: PrivateKey
 }
 object  KeyPair {
-  import Implicits._
   import jp.co.soramitsu.crypto.ed25519.{EdDSAPrivateKey, EdDSAPublicKey}
   import scala.util.Try
+  import Implicits._
 
   private case class impl(inner: java.security.KeyPair, publicKey: PublicKey, privateKey: PrivateKey) extends KeyPair
 
@@ -32,26 +32,56 @@ object  KeyPair {
 
   /**
     * Create a [SHA3EdDSAKeyPair] from a [String].
-    * @param seed is the private key
+    * @param privateKeyHexa is the private key
     */
-  def apply(seed: String): Try[KeyPair] =
-    seed.bytes
+  def apply(privateKeyHexa: String): Try[KeyPair] =
+    privateKeyHexa.bytes
       .flatMap(bytes => apply(bytes))
 
   /**
     * Create a [SHA3EdDSAKeyPair] from a byte array.
-    * @param seed the private key
+    * @param privateKeyBytes the private key
     */
-  def apply(seed: Array[Byte]): Try[KeyPair] = {
-    assume(seed.length == 32)
-    assume(seed.hexa.forall(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+  def apply(privateKeyBytes: Array[Byte]): Try[KeyPair] = {
+    assume(privateKeyBytes.length == 32)
+    assume(privateKeyBytes.hexa.forall(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
     for {
-      privateKey <- PrivateKey(seed)
+      privateKey <- PrivateKey(privateKeyBytes)
       publicKey  <- PublicKey(privateKey.publicKeyBytes)
     } yield {
       apply(publicKey, privateKey)
     }
   }
+
+  /**
+    * Create a [SHA3EdDSAKeyPair] from a byte arrays containing the public key and the private key.
+    * @param publicKeyBytes the public key
+    * @param privateKeyBytes the private key
+    */
+  def apply(publicKeyBytes: Array[Byte], privateKeyBytes: Array[Byte]): Try[KeyPair] = Try {
+    import jp.co.soramitsu.crypto.ed25519.Ed25519Sha3
+    // Notice that we expose public key and private key in this order, which is the order
+    // adopted by java.security.KeyPair, whilst Ed25519Sha3.keyPairFromBytes swaps the order.
+    val kp: java.security.KeyPair = Ed25519Sha3.keyPairFromBytes(privateKeyBytes, publicKeyBytes)
+    new impl(
+      kp,
+      PublicKey(kp.getPublic.asInstanceOf[EdDSAPublicKey]),
+      PrivateKey(kp.getPrivate.asInstanceOf[EdDSAPrivateKey]))
+  }
+
+  /**
+    * Create a [SHA3EdDSAKeyPair] from strings containing the public key and the private key.
+    * @param publicKeyHexa the public key
+    * @param privateKeyHexa the private key
+    */
+  def apply(publicKeyHexa: String, privateKeyHexa: String): Try[KeyPair] =
+    for {
+      publicKeyBytes  <- publicKeyHexa.bytes
+      privateKeyBytes <- privateKeyHexa.bytes
+      keypair <- apply(publicKeyBytes, privateKeyBytes)
+    } yield {
+      keypair
+    }
 
   /**
     * Create a random [SHA3EdDSAKeyPair].
